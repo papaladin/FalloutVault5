@@ -871,23 +871,24 @@ function loadNode(nodeId) {
     }
     document.getElementById("story-content").innerHTML = formatStoryText(displayText);
 
-    // Image handling (only if enabled)
-    if (ENABLE_IMAGES) {
-        const imgElement = document.getElementById("node-image");
-        const imageBasePath = "assets/";
-        let imageName = node.imageKey || node.id;
-        const imageFile = imageBasePath + imageName + ".jpg";
-        imgElement.src = imageFile;
-        imgElement.onload = () => {
-            imgElement.style.display = "block";
-        };
-        imgElement.onerror = () => {
-            imgElement.style.display = "none";
-            imgElement.src = "";
-        };
-    } else {
-        document.getElementById("node-image").style.display = "none";
-    }
+	// Image handling
+	const imgElement = document.getElementById("node-image");
+	if (ENABLE_IMAGES) {
+		const imageBasePath = "assets/";
+		let imageName = node.imageKey || node.id;
+		const imageFile = imageBasePath + imageName + ".jpg";
+		imgElement.src = imageFile;
+		imgElement.onload = () => {
+			imgElement.style.display = "block";
+		};
+		imgElement.onerror = () => {
+			imgElement.style.display = "none";
+			imgElement.src = "";
+		};
+	} else {
+		imgElement.style.display = "none";
+		imgElement.src = "";   // Clear src to prevent any 404 requests
+	}
 
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
