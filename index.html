@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault 5 – Fallout Adventure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Row 1: Core stats -->
+        <div id="core-stats" class="stats-row">
+            <div>❤️ Health: <span id="hp-value">10</span> / <span id="max-hp-value">10</span></div>
+            <div>📅 Days left: <span id="days-value">15</span></div>
+            <div>🔍 Clues found: <span id="clues-value">0</span></div>
+        </div>
+        <!-- Row 2: SPECIAL stats -->
+        <div id="special-stats" class="stats-row">
+            <span>💪 STR: <span id="str">5</span></span>
+            <span>👁️ PER: <span id="per">5</span></span>
+            <span>🏃 END: <span id="end">5</span></span>
+            <span>🗣️ CHA: <span id="cha">5</span></span>
+            <span>🧠 INT: <span id="int">5</span></span>
+            <span>🤸 AGI: <span id="agi">5</span></span>
+            <span>🍀 LUK: <span id="luk">5</span></span>
+        </div>
+        <!-- Image container -->
+        <div id="story-image" style="text-align: center; margin-bottom: 15px; min-height: 100px;">
+            <img id="node-image" src="" alt="Scene illustration" style="max-width: 100%; max-height: 300px; display: none; border-radius: 5px;">
+        </div>
+        <div id="story-content"></div>
+        <div id="choices-container"></div>
+        <div id="rest-button-container" style="margin-top: 20px;"></div>
+        <div id="global-actions" style="margin-top: 20px; text-align: center;">
+            <button id="restart-story-btn" class="restart-btn">🔄 Restart Story</button>
+        </div>
+        <!-- Hidden audio element for playlist -->
+        <audio id="bg-music" style="display: none;"></audio>
+    </div>
+
+    <!-- Character creation modal -->
+    <div id="creation-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+        <div style="background: #2c3e2f; padding: 20px; border-radius: 8px; max-width: 500px; color: #e0e0e0; font-family: 'Courier New', monospace;">
+            <h2>Character Creation</h2>
+            <p>Base SPECIAL: 5. You have <span id="points-left">5</span> points to allocate.<br>
+            Lower a stat below 5 to gain extra points.<br>
+            Maximum Health = 2 × Endurance.</p>
+            <div id="special-creator">
+                <div>💪 Strength: <span id="create-str">5</span> <button data-stat="strength" data-dir="up">+</button> <button data-stat="strength" data-dir="down">-</button></div>
+                <div>👁️ Perception: <span id="create-per">5</span> <button data-stat="perception" data-dir="up">+</button> <button data-stat="perception" data-dir="down">-</button></div>
+                <div>🏃 Endurance: <span id="create-end">5</span> <button data-stat="endurance" data-dir="up">+</button> <button data-stat="endurance" data-dir="down">-</button></div>
+                <div>🗣️ Charisma: <span id="create-cha">5</span> <button data-stat="charisma" data-dir="up">+</button> <button data-stat="charisma" data-dir="down">-</button></div>
+                <div>🧠 Intelligence: <span id="create-int">5</span> <button data-stat="intelligence" data-dir="up">+</button> <button data-stat="intelligence" data-dir="down">-</button></div>
+                <div>🤸 Agility: <span id="create-agi">5</span> <button data-stat="agility" data-dir="up">+</button> <button data-stat="agility" data-dir="down">-</button></div>
+                <div>🍀 Luck: <span id="create-luk">5</span> <button data-stat="luck" data-dir="up">+</button> <button data-stat="luck" data-dir="down">-</button></div>
+            </div>
+            <p>Points remaining: <span id="points-remaining">5</span></p>
+            <button id="confirm-creation">Start Adventure</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
