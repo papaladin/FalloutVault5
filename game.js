@@ -1,7 +1,7 @@
 // game.js
 
 // ------------------- Configuration -------------------
-const ENABLE_IMAGES = false;  // Set to true once you have images in /assets/
+const ENABLE_IMAGES = true;  // Set to true once you have images in /assets/
 
 // ------------------- Global Text Map (from JSON) -------------------
 let textMap = {};
