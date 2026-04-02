@@ -36,18 +36,18 @@ body {
 }
 
 #story-image {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin-bottom: 15px;
     min-height: 100px;
 }
 
 #node-image {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
     max-width: 100%;
     max-height: 300px;
     border-radius: 5px;
+    display: none;  /* Hidden by default, JS will show it */
 }
 
 #story-content {
