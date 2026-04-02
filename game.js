@@ -9,7 +9,6 @@ let textMap = {};
 // ------------------- Helper: format text with paragraphs and line breaks -------------------
 function formatStoryText(text) {
     if (!text) return "";
-    // Split by double newline (paragraphs)
     let paragraphs = text.split(/\n\s*\n/);
     let formatted = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
     return formatted;
@@ -871,24 +870,24 @@ function loadNode(nodeId) {
     }
     document.getElementById("story-content").innerHTML = formatStoryText(displayText);
 
-	// Image handling
-	const imgElement = document.getElementById("node-image");
-	if (ENABLE_IMAGES) {
-		const imageBasePath = "assets/";
-		let imageName = node.imageKey || node.id;
-		const imageFile = imageBasePath + imageName + ".jpg";
-		imgElement.src = imageFile;
-		imgElement.onload = () => {
-			imgElement.style.display = "block";
-		};
-		imgElement.onerror = () => {
-			imgElement.style.display = "none";
-			imgElement.src = "";
-		};
-	} else {
-		imgElement.style.display = "none";
-		imgElement.src = "";   // Clear src to prevent any 404 requests
-	}
+    // Image handling
+    const imgElement = document.getElementById("node-image");
+    if (ENABLE_IMAGES) {
+        const imageBasePath = "assets/";
+        let imageName = node.imageKey || node.id;
+        const imageFile = imageBasePath + imageName + ".jpg";
+        imgElement.src = imageFile;
+        imgElement.onload = () => {
+            imgElement.style.display = "block";
+        };
+        imgElement.onerror = () => {
+            imgElement.style.display = "none";
+            imgElement.src = "";
+        };
+    } else {
+        imgElement.style.display = "none";
+        imgElement.src = "";
+    }
 
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
@@ -1090,17 +1089,24 @@ function attachRestartButton() {
 function loadDetailedStory(callback) {
     fetch("detailed_story.json")
         .then(response => {
-            if (!response.ok) throw new Error("HTTP " + response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             return response.json();
         })
         .then(data => {
             textMap = data;
-            console.log("Detailed story loaded.");
+            console.log("Detailed story loaded successfully.");
+            // Optional: log first key to verify
+            console.log("Sample key 'vault_start_text':", textMap["vault_start_text"]);
             if (callback) callback();
         })
         .catch(error => {
-            console.warn("Could not load detailed_story.json, using fallback content.", error);
+            console.error("Failed to load detailed_story.json:", error);
+            console.warn("Using fallback content (short summaries).");
             textMap = {};
+            // TEMPORARY TEST: inject a test text to verify engine works
+            textMap["vault_start_text"] = "⚠️ TEST: detailed_story.json not loaded. Please check the file location and syntax.\n\nIf you see this, the engine works but the JSON file is missing or invalid.";
             if (callback) callback();
         });
 }
