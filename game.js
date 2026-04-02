@@ -1,13 +1,24 @@
 // game.js
 
+// ------------------- Configuration -------------------
+const ENABLE_IMAGES = false;  // Set to true once you have images in /assets/
+
 // ------------------- Global Text Map (from JSON) -------------------
 let textMap = {};
+
+// ------------------- Helper: format text with paragraphs and line breaks -------------------
+function formatStoryText(text) {
+    if (!text) return "";
+    // Split by double newline (paragraphs)
+    let paragraphs = text.split(/\n\s*\n/);
+    let formatted = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+    return formatted;
+}
 
 // ------------------- Playlist (add more URLs here) -------------------
 const playlist = [
     "https://archive.org/download/fallout_2_soundtrack/07%20Industrial%20Junk.mp3",
-    "https://archive.org/download/fallout_2_soundtrack/08%20Underground%20Troubles.mp3" 
-    // Add more tracks as needed
+    "https://archive.org/download/fallout_2_soundtrack/04%20The%20Vault%20of%20the%20Future.mp3"
 ];
 let currentTrack = 0;
 let audioPlayer = null;
@@ -556,7 +567,7 @@ const storyData = {
     // VI. Return & Resolution
     "return_road": {
         id: "return_road",
-        content: "[return_road] You travel back to Vault 5. (1 day passes)",
+        content: "[return_road] You travel back to Vault 42. (1 day passes)",
         contentKey: "return_road_text",
         imageKey: "return_road",
         daysCost: 1,
@@ -622,7 +633,7 @@ const storyData = {
     },
     "game_over_time": {
         id: "game_over_time",
-        content: "⏰ Time runs out. Vault 5 falls silent. Everyone asphyxiates. Game over. ⏰",
+        content: "⏰ Time runs out. Vault 42 falls silent. Everyone asphyxiates. Game over. ⏰",
         contentKey: "game_over_time_text",
         imageKey: "game_over_time",
         daysCost: 0,
@@ -637,7 +648,6 @@ function initPlaylist() {
     if (!audioPlayer || playlist.length === 0) return;
     audioPlayer.src = playlist[0];
     audioPlayer.addEventListener("ended", function() {
-        // Move to next track, loop back to start
         currentTrack = (currentTrack + 1) % playlist.length;
         audioPlayer.src = playlist[currentTrack];
         audioPlayer.play().catch(e => console.log("Playback error", e));
@@ -718,7 +728,6 @@ function resetGame() {
     gameState.currentNodeId = "vault_start";
     updateStatsDisplay();
     showCreationScreen();
-    // Optional: stop music on restart? We'll keep it playing.
 }
 
 function applyNodeEffects(node) {
@@ -759,7 +768,7 @@ function displayGameOverNode(nodeId) {
     if (node.contentKey && textMap[node.contentKey]) {
         displayText = textMap[node.contentKey];
     }
-    document.getElementById("story-content").innerText = displayText;
+    document.getElementById("story-content").innerHTML = formatStoryText(displayText);
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
     const restartBtn = document.createElement("button");
@@ -811,7 +820,7 @@ function loadNode(nodeId) {
 
     const node = storyData[nodeId];
     if (!node) {
-        document.getElementById("story-content").innerText = "Error: node not found.";
+        document.getElementById("story-content").innerHTML = formatStoryText("Error: node not found.");
         return;
     }
 
@@ -848,7 +857,7 @@ function loadNode(nodeId) {
 
     // Dynamic epilogue generation
     if (node.isDynamic && node.id === "epilogue") {
-        document.getElementById("story-content").innerText = generateEpilogue();
+        document.getElementById("story-content").innerHTML = formatStoryText(generateEpilogue());
         document.getElementById("choices-container").innerHTML = "";
         document.getElementById("rest-button-container").innerHTML = "";
         document.getElementById("node-image").style.display = "none";
@@ -860,21 +869,25 @@ function loadNode(nodeId) {
     if (node.contentKey && textMap[node.contentKey]) {
         displayText = textMap[node.contentKey];
     }
-    document.getElementById("story-content").innerText = displayText;
+    document.getElementById("story-content").innerHTML = formatStoryText(displayText);
 
-    // Image handling
-    const imgElement = document.getElementById("node-image");
-    const imageBasePath = "assets/";
-    let imageName = node.imageKey || node.id;
-    const imageFile = imageBasePath + imageName + ".jpg";
-    imgElement.src = imageFile;
-    imgElement.onload = () => {
-        imgElement.style.display = "block";
-    };
-    imgElement.onerror = () => {
-        imgElement.style.display = "none";
-        imgElement.src = "";
-    };
+    // Image handling (only if enabled)
+    if (ENABLE_IMAGES) {
+        const imgElement = document.getElementById("node-image");
+        const imageBasePath = "assets/";
+        let imageName = node.imageKey || node.id;
+        const imageFile = imageBasePath + imageName + ".jpg";
+        imgElement.src = imageFile;
+        imgElement.onload = () => {
+            imgElement.style.display = "block";
+        };
+        imgElement.onerror = () => {
+            imgElement.style.display = "none";
+            imgElement.src = "";
+        };
+    } else {
+        document.getElementById("node-image").style.display = "none";
+    }
 
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
@@ -953,7 +966,7 @@ function loadNode(nodeId) {
             }
 
             if (extraText && !shouldStay) {
-                document.getElementById("story-content").innerText = displayText + "\n\n" + extraText;
+                document.getElementById("story-content").innerHTML = formatStoryText(displayText + "\n\n" + extraText);
                 choicesDiv.innerHTML = "";
                 document.getElementById("rest-button-container").innerHTML = "";
                 const continueBtn = document.createElement("button");
@@ -1042,7 +1055,7 @@ function confirmCreation() {
     clearSave();
     saveGame();
     loadNode("vault_start");
-    startMusic();  // Start background music after character creation
+    startMusic();
 }
 
 function showCreationScreen() {
@@ -1058,7 +1071,7 @@ function showCreationScreen() {
     };
     updateCreationUI();
     document.getElementById("creation-modal").style.display = "flex";
-    document.getElementById("story-content").innerText = "";
+    document.getElementById("story-content").innerHTML = "";
     document.getElementById("choices-container").innerHTML = "";
     document.getElementById("rest-button-container").innerHTML = "";
     document.getElementById("node-image").style.display = "none";
@@ -1094,12 +1107,12 @@ function loadDetailedStory(callback) {
 // ------------------- Initialization -------------------
 document.addEventListener("DOMContentLoaded", () => {
     // Show loading message while fetching JSON
-    document.getElementById("story-content").innerText = "Loading wasteland tales...";
+    document.getElementById("story-content").innerHTML = formatStoryText("Loading wasteland tales...");
     document.getElementById("choices-container").innerHTML = "";
     document.getElementById("rest-button-container").innerHTML = "";
     document.getElementById("node-image").style.display = "none";
 
-    initPlaylist();  // Set up audio player
+    initPlaylist();
 
     loadDetailedStory(() => {
         // Attach UI listeners
