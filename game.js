@@ -1,7 +1,7 @@
 // game.js
 
 // ------------------- Configuration -------------------
-const ENABLE_IMAGES = true;  // Set to true once you have images in /assets/
+const ENABLE_IMAGES = false;  // Set to true once you have images in /assets/
 
 // ------------------- Global Text Map (from JSON) -------------------
 let textMap = {};
@@ -786,28 +786,56 @@ function generateEpilogue() {
     const sentence = gameState.flags.sentence;
 
     if (!culpritIdentified) {
-        text += "But the saboteur remains at large, hidden among the dwellers. Trust is broken, and paranoia festers in the corridors. The Overseer thanks you, but you can't shake the feeling that the real threat still watches from the shadows.\n\n";
-    } else if (culpritCorrect) {
-        text += "You have unmasked the true traitor: Marcus, the Overseer's assistant. The evidence is undeniable.\n\n";
+        text += "But the saboteur remains at large, hidden among the dwellers. Trust is broken, and paranoia festers in the corridors like a disease nobody wants to name. The Overseer thanks you with a hollow smile – she knows, as you do, that the real threat still watches from the shadows. Meals are eaten in silence. Neighbors eye each other over the hydroponic soy. The water chip works again, but nobody trusts the water.\n\n";
+        text += "You lie awake at night, staring at the riveted ceiling, wondering which face hides the knife. Marcus is still there, still smiling that too‑wide smile. You have no proof, only instinct. And instinct, in Vault‑Tec's world, is worth less than the lint in your pocket.\n\n";
+        text += "The vault survives. But survival isn't the same as living. You saved them from the reactor, but you couldn't save them from themselves. Some victories taste like ash.\n\n";
+    } 
+    else if (culpritCorrect) {
+        text += "You have unmasked the true traitor: Marcus, the Overseer's assistant. The evidence is undeniable – a holotape, a terminal log, a confession that spills out like rancid oil. The dwellers gasp. Security cuffs him. His smile finally cracks, revealing the rot beneath.\n\n";
+        text += "'Vault‑Tec promised me a place in a control vault,' he snarls. 'They said I'd be safe. I was just following orders.' The words hang in the recycled air, heavy and pathetic. Following orders. The oldest excuse for the worst crimes.\n\n";
+        
         if (sentence === "mercy") {
-            text += "You show mercy. Marcus is imprisoned in the vault's brig, forced to work for the community. Some call you weak, but others see wisdom in redemption.\n\n";
-        } else if (sentence === "exile") {
-            text += "You cast Marcus into the wasteland without a weapon. He will not survive long, but his fate is no longer your concern. The vault is safe.\n\n";
-        } else if (sentence === "execution") {
-            text += "Marcus is executed by firing squad. His last words are a curse, but order is restored. The dwellers feel safe again.\n\n";
+            text += "You show mercy. Marcus is imprisoned in the vault's brig – a converted storage closet with a cot and a bucket. He'll spend his days scrubbing pipes and repairing filtration units. Some call you weak. They whisper that you should have put a bullet in his head. But others see wisdom in redemption – or maybe they're just tired of blood.\n\n";
+            text += "Marcus works in silence. He doesn't thank you. He doesn't curse you. He just exists, a ghost in a jumpsuit. The vault breathes easier, but the scar remains. You pass him in the corridor sometimes. He looks away. So do you.\n\n";
+        } 
+        else if (sentence === "exile") {
+            text += "You cast Marcus into the wasteland without a weapon, without a canteen, without hope. The vault door seals behind him. His last look is not anger, but something worse: resignation. He knew this was coming. He always knew.\n\n";
+            text += "The dwellers cheer. Justice, they call it. But you can't shake the image of him walking into the dust, alone, under a sky the color of a healing bruise. He won't survive the night. The radscorpions will see to that.\n\n";
+            text += "The vault is safe. But safety built on exile feels like a bandage on a wound that needs stitches. You tell yourself he deserved it. Most nights, you almost believe it.\n\n";
+        } 
+        else if (sentence === "execution") {
+            text += "Marcus is executed by firing squad in the atrium. The plastic tree watches, its leaves dusted for the occasion. The shots echo off the metal walls – three sharp cracks, then silence. His body crumples, a red stain spreading on the concrete.\n\n";
+            text += "His last words are a curse – not on you, but on Vault‑Tec, on the world, on the whole rotten system that made him a pawn. The dwellers turn away, suddenly ashamed. Nobody cheers. Nobody cries. They just… leave.\n\n";
+            text += "You stand alone with the body, the regulator still warm in your hands. Order is restored. Fear is replaced by something colder. The vault is safe. But you wonder, sometimes, if you executed the wrong person after all. Not Marcus – yourself.\n\n";
         }
-    } else {
-        text += "You accuse an innocent dweller based on flimsy evidence. The real saboteur remains hidden, and the vault's unity crumbles. Your reputation is shattered.\n\n";
+    } 
+    else {
+        text += "You accuse an innocent dweller based on flimsy evidence – a hunch, a whisper, a desperate need to blame someone. The council listens. The dwellers shout for blood. And you give it to them.\n\n";
+        text += "The real saboteur remains hidden, maybe laughing, maybe watching from the shadows. The vault's unity crumbles like old concrete. Your reputation – once a hero's – shatters into a thousand pieces. People avoid you in the corridors. They whisper behind your back. 'Wrong man,' they say. 'Finger pointed the wrong way.'\n\n";
+        
         if (sentence === "mercy") {
-            text += "The innocent is imprisoned, but whispers of injustice follow you forever.\n\n";
-        } else if (sentence === "exile") {
-            text += "An innocent family is cast out into the wasteland. You will never forget their faces.\n\n";
-        } else if (sentence === "execution") {
-            text += "Blood stains the atrium floor. You executed the wrong person. The guilt never leaves you.\n\n";
+            text += "You show mercy to the innocent. He is imprisoned – not in the brig, but in a corner of the hydroponics bay, under guard. He doesn't speak. He doesn't eat. He just sits, staring at the plastic tree, his eyes empty.\n\n";
+            text += "The whispers follow you forever. 'She let him live,' they say, 'but she killed his soul.' You visit him once. He looks through you like you're made of glass. You never go back.\n\n";
+            text += "The vault endures, but it's a hollow shell. Trust is a currency nobody spends. And you, the hero of Vault 5, are its most indebted citizen.\n\n";
+        } 
+        else if (sentence === "exile") {
+            text += "You cast an innocent family into the wasteland – a father, a mother, a child no older than five. The vault door seals behind them. The mother's eyes haunt you. The child's silence is louder than any scream.\n\n";
+            text += "You will never forget their faces. They stare at you in your dreams, asking why. You have no answer. Only the hollow echo of your own voice, shouting 'traitor' at the wrong target.\n\n";
+            text += "The wasteland outside is harsh. They won't last a week. And when they're gone, you'll still be here, living with the weight of their exile. Justice? No. Just tragedy wearing a hero's badge.\n\n";
+        } 
+        else if (sentence === "execution") {
+            text += "Blood stains the atrium floor. You executed the wrong person. The innocent's last words were not a curse, but a question: 'Why?' You have no answer. The bullet left your gun, but the guilt never leaves you.\n\n";
+            text += "The dwellers turn away. The Overseer avoids your gaze. Even the security guards shuffle their feet, uncomfortable. You wanted justice. You got murder.\n\n";
+            text += "The vault is safe – the reactor hums, the water flows – but the safety is built on a lie. You go to sleep each night and wake each morning to the same thought: an innocent person died because you were too eager, too angry, too blind.\n\n";
+            text += "Some heroes get statues. You get a stain that won't wash out.\n\n";
         }
     }
 
-    text += "The wasteland outside remains harsh, but for now, Vault 5 endures. Your adventure is over.\n\nThank you for playing.";
+    text += "The wasteland outside remains harsh – the sun still burns, the radscorpions still skitter, the Enclave still schemes. But for now, Vault 5 endures. The lights stay on. The children grow up. The old die slow.\n\n";
+    text += "Your adventure is over. But the wasteland never stops. And somewhere, out there, a regulator waits for the next vault to fail.\n\n";
+    text += "Thank you for playing.\n\n";
+    text += "— Vault 5 —";
+    
     return text;
 }
 
