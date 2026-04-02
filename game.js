@@ -871,23 +871,30 @@ function loadNode(nodeId) {
     document.getElementById("story-content").innerHTML = formatStoryText(displayText);
 
     // Image handling
-    const imgElement = document.getElementById("node-image");
-    if (ENABLE_IMAGES) {
-        const imageBasePath = "assets/";
-        let imageName = node.imageKey || node.id;
-        const imageFile = imageBasePath + imageName + ".jpg";
-        imgElement.src = imageFile;
-        imgElement.onload = () => {
-            imgElement.style.display = "block";
-        };
-        imgElement.onerror = () => {
-            imgElement.style.display = "none";
-            imgElement.src = "";
-        };
-    } else {
-        imgElement.style.display = "none";
-        imgElement.src = "";
-    }
+	const imgElement = document.getElementById("node-image");
+	if (ENABLE_IMAGES) {
+		const imageBasePath = "assets/";
+		let imageName = node.imageKey || node.id;
+		const imageFile = imageBasePath + imageName + ".jpg";
+		const defaultImage = imageBasePath + "default.jpg";
+		
+		imgElement.src = imageFile;
+		imgElement.onload = () => {
+			imgElement.style.display = "block";
+		};
+		imgElement.onerror = () => {
+			// Try default image
+			imgElement.src = defaultImage;
+			imgElement.onerror = () => {
+				// If default also fails, hide
+				imgElement.style.display = "none";
+				imgElement.src = "";
+			};
+		};
+	} else {
+		imgElement.style.display = "none";
+		imgElement.src = "";
+	}
 
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
