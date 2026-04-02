@@ -121,15 +121,26 @@ const storyData = {
     },
     "ncr_raid_fight": {
         id: "ncr_raid_fight",
-        content: "[ncr_raid_fight] You fight raiders alongside the NCR. (HP -3, Agility ≥ 6 reduces to -1)",
+        content: "[ncr_raid_fight] NCR soldiers need your help against raiders.",
         contentKey: "ncr_raid_fight_text",
         imageKey: "ncr_raid_fight",
-        daysCost: 1,
-        hpChange: -3,
-        hpModifiers: [
-            { stat: "agility", min: 6, reduction: 2 }
-        ],
-        choices: [{ text: "Continue", target: "wasteland_junction" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight normally", 
+                target: "wasteland_junction",
+                extraContentKey: "ncr_raid_fight_normal_text",
+                on_select: { action: "adjust", hp: -3, days: -1 }
+            },
+            { 
+                text: "Fight carefully (Agility ≥ 6)", 
+                target: "wasteland_junction",
+                condition: "agility >= 6",
+                extraContentKey: "ncr_raid_fight_agile_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            }
+        ]
     },
     "brotherhood_scout": {
         id: "brotherhood_scout",
@@ -169,28 +180,62 @@ const storyData = {
     },
     "bloatfly_nest": {
         id: "bloatfly_nest",
-        content: "[bloatfly_nest] You fight bloatflies. (HP -2, Perception ≥ 6 reduces to -1)",
+        content: "[bloatfly_nest] You face a bloatfly nest.",
         contentKey: "bloatfly_nest_text",
         imageKey: "bloatfly_nest",
-        daysCost: 1,
-        hpChange: -2,
-        hpModifiers: [
-            { stat: "perception", min: 6, reduction: 1 }
-        ],
-        choices: [{ text: "Return to hermit", target: "wasteland_junction" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight through", 
+                target: "wasteland_junction",
+                extraContentKey: "bloatfly_nest_fight_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            },
+            { 
+                text: "Use perception to avoid damage (Perception ≥ 6)", 
+                target: "wasteland_junction",
+                condition: "perception >= 6",
+                extraContentKey: "bloatfly_nest_perception_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            }
+        ]
     },
     "radscorpion_trench": {
         id: "radscorpion_trench",
-        content: "[radscorpion_trench] You face radscorpions. (HP -3, Agility ≥ 6 reduces to -1, Strength ≥ 7 negates)",
+        content: "[radscorpion_trench] Radscorpions block the trench.",
         contentKey: "radscorpion_trench_text",
         imageKey: "radscorpion_trench",
-        daysCost: 1,
-        hpChange: -3,
-        hpModifiers: [
-            { stat: "agility", min: 6, reduction: 2 },
-            { stat: "strength", min: 7, reduction: 3 }
-        ],
-        choices: [{ text: "Continue", target: "wasteland_junction" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight through", 
+                target: "wasteland_junction",
+                extraContentKey: "radscorpion_trench_fight_text",
+                on_select: { action: "adjust", hp: -3, days: -1 }
+            },
+            { 
+                text: "Fight with agility (Agility ≥ 6)", 
+                target: "wasteland_junction",
+                condition: "agility >= 6",
+                extraContentKey: "radscorpion_trench_fight_agile_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Fight with strength (Strength ≥ 7)", 
+                target: "wasteland_junction",
+                condition: "strength >= 7",
+                extraContentKey: "radscorpion_trench_fight_strong_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            },
+            { 
+                text: "Take the long way around", 
+                target: "wasteland_junction",
+                extraContentKey: "radscorpion_trench_round_text",
+                on_select: { action: "adjust", hp: 0, days: -3 }
+            }
+        ]
     },
     // III. Interlude (expanded)
     "wasteland_junction": {
@@ -229,22 +274,39 @@ const storyData = {
         hpChange: 0,
         choices: [{ text: "Continue forward (no way back)", target: "crossroads_village" }]
     },
-    "wasteland_ambush": {
-        id: "wasteland_ambush",
-        content: "[wasteland_ambush] Ambush! (HP -2, Agility ≥ 6 reduces to -1, Strength ≥ 8 reduces to -1)",
-        contentKey: "wasteland_ambush_text",
-        imageKey: "wasteland_ambush",
-        daysCost: 1,
-        hpChange: -2,
-        hpModifiers: [
-            { stat: "agility", min: 6, reduction: 1 },
-            { stat: "strength", min: 8, reduction: 1 }
-        ],
-        choices: [{ text: "Return to junction", target: "wasteland_junction" }]
-    },
+"wasteland_ambush": {
+    id: "wasteland_ambush",
+    content: "[wasteland_ambush] You are ambushed!",
+    contentKey: "wasteland_ambush_text",
+    imageKey: "wasteland_ambush",
+    daysCost: 0,
+    hpChange: 0,
+    choices: [
+        { 
+            text: "Fight", 
+            target: "wasteland_junction",
+            extraContentKey: "wasteland_ambush_fight_text",
+            on_select: { action: "adjust", hp: -2, days: -1 }
+        },
+        { 
+            text: "Fight with agility (Agility ≥ 6)", 
+            target: "wasteland_junction",
+            condition: "agility >= 6",
+            extraContentKey: "wasteland_ambush_fight_agile_text",
+            on_select: { action: "adjust", hp: -1, days: -1 }
+        },
+        { 
+            text: "Fight with strength (Strength ≥ 8)", 
+            target: "wasteland_junction",
+            condition: "strength >= 8",
+            extraContentKey: "wasteland_ambush_fight_strong_text",
+            on_select: { action: "adjust", hp: -1, days: -1 }
+        }
+    ]
+},
     "campfire_rest": {
         id: "campfire_rest",
-        content: "[campfire_rest] A small campfire with a lone traveler. He offers you a safe place to rest. (Rest: +2 HP, -2 days, no other changes)",
+        content: "[campfire_rest] A campfire with a lone traveler.",
         contentKey: "campfire_rest_text",
         imageKey: "campfire_rest",
         daysCost: 0,
@@ -253,14 +315,15 @@ const storyData = {
             { 
                 text: "Rest here", 
                 target: "campfire_rest",
-                on_select: { action: "rest", hpGain: 2, daysCost: 2 }
+                extraContentKey: "campfire_rest_rest_text",
+                on_select: { action: "adjust", hp: 2, days: -2 }
             },
             { text: "Thank him and leave", target: "wasteland_junction" }
         ]
     },
     "training_grounds": {
         id: "training_grounds",
-        content: "[training_grounds] You find an old pre-war gym with functional weights. You can train for two days to improve your body.",
+        content: "[training_grounds] A pre-war gym.",
         contentKey: "training_grounds_text",
         imageKey: "training_grounds",
         daysCost: 0,
@@ -269,7 +332,7 @@ const storyData = {
             { 
                 text: "Train (lose 2 days, Strength +1, Endurance +1)", 
                 target: "training_grounds",
-                on_select: { action: "train", stat1: "strength", stat2: "endurance", daysCost: 2 }
+                on_select: { action: "train", stat1: "strength", stat2: "endurance", daysCost: -2 }
             },
             { text: "Leave", target: "wasteland_junction" }
         ]
@@ -327,16 +390,33 @@ const storyData = {
     },
     "raider_camp": {
         id: "raider_camp",
-        content: "[raider_camp] You clear a raider camp. (HP -4, Strength ≥ 7 reduces to -2, Agility ≥ 6 reduces to -2)",
+        content: "[raider_camp] A raider camp.",
         contentKey: "raider_camp_text",
         imageKey: "raider_camp",
-        daysCost: 1,
-        hpChange: -4,
-        hpModifiers: [
-            { stat: "strength", min: 7, reduction: 2 },
-            { stat: "agility", min: 6, reduction: 2 }
-        ],
-        choices: [{ text: "Return to NCR outpost", target: "depot_gate" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Assault the camp", 
+                target: "depot_gate",
+                extraContentKey: "raider_camp_assault_text",
+                on_select: { action: "adjust", hp: -4, days: -1 }
+            },
+            { 
+                text: "Assault with strength (Strength ≥ 7)", 
+                target: "depot_gate",
+                condition: "strength >= 7",
+                extraContentKey: "raider_camp_assault_strong_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            },
+            { 
+                text: "Assault with agility (Agility ≥ 6)", 
+                target: "depot_gate",
+                condition: "agility >= 6",
+                extraContentKey: "raider_camp_assault_agile_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            }
+        ]
     },
     "brotherhood_village_contact": {
         id: "brotherhood_village_contact",
@@ -352,16 +432,38 @@ const storyData = {
     },
     "yaoguai_cave_tech": {
         id: "yaoguai_cave_tech",
-        content: "[yaoguai_cave_tech] You fight a Yao Guai. (HP -3, Strength ≥ 7 reduces to -1, Agility ≥ 6 reduces to -1)",
+        content: "[yaoguai_cave_tech] A Yao Guai cave.",
         contentKey: "yaoguai_cave_tech_text",
         imageKey: "yaoguai_cave_tech",
-        daysCost: 1,
-        hpChange: -3,
-        hpModifiers: [
-            { stat: "strength", min: 7, reduction: 2 },
-            { stat: "agility", min: 6, reduction: 2 }
-        ],
-        choices: [{ text: "Return to village", target: "depot_gate" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight the Yao Guai", 
+                target: "depot_gate",
+                extraContentKey: "yaoguai_cave_tech_fight_text",
+                on_select: { action: "adjust", hp: -3, days: -1 }
+            },
+            { 
+                text: "Fight with strength (Strength ≥ 7)", 
+                target: "depot_gate",
+                condition: "strength >= 7",
+                extraContentKey: "yaoguai_cave_tech_fight_strong_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Set a trap (Agility ≥ 6)", 
+                target: "depot_gate",
+                condition: "agility >= 6",
+                extraContentKey: "yaoguai_cave_tech_trap_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Abandon the quest", 
+                target: "crossroads_village",
+                extraContentKey: "yaoguai_cave_tech_abandon_text"
+            }
+        ]
     },
     "enclave_rumor": {
         id: "enclave_rumor",
@@ -377,56 +479,96 @@ const storyData = {
     },
     "enclave_scout_patrol": {
         id: "enclave_scout_patrol",
-        content: "[enclave_scout_patrol] Enclave patrol attacks. (HP -2, Charisma ≥ 8 reduces to 0, Agility ≥ 7 reduces to 0)",
+        content: "[enclave_scout_patrol] Enclave patrol.",
         contentKey: "enclave_scout_patrol_text",
         imageKey: "enclave_scout_patrol",
-        daysCost: 1,
-        hpChange: -2,
-        hpModifiers: [
-            { stat: "charisma", min: 8, reduction: 2 },
-            { stat: "agility", min: 7, reduction: 2 }
-        ],
+        daysCost: 0,
+        hpChange: 0,
         choices: [
-            { text: "Escape", target: "depot_gate" },
-            { text: "Get captured", target: "enclave_bunker" }
+            { 
+                text: "Fight", 
+                target: "depot_gate",
+                extraContentKey: "enclave_scout_patrol_fight_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            },
+            { 
+                text: "Escape (Agility ≥ 7)", 
+                target: "depot_gate",
+                condition: "agility >= 7",
+                extraContentKey: "enclave_scout_patrol_escape_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            },
+            { 
+                text: "Bluff (Charisma ≥ 8)", 
+                target: "depot_gate",
+                condition: "charisma >= 8",
+                extraContentKey: "enclave_scout_patrol_bluff_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            },
+            { 
+                text: "Get captured", 
+                target: "enclave_bunker",
+                extraContentKey: "enclave_scout_patrol_capture_text",
+                on_select: { action: "adjust", hp: 0, days: 0 }  // capture will add days in bunker
+            }
         ]
     },
     "enclave_bunker": {
         id: "enclave_bunker",
-        content: "[enclave_bunker] You are held in an Enclave bunker. (HP -1, Intelligence ≥ 7 reveals data and gives clue)",
+        content: "[enclave_bunker] Enclave bunker.",
         contentKey: "enclave_bunker_text",
         imageKey: "enclave_bunker",
-        daysCost: 1,
-        hpChange: -1,
-        hpModifiers: [
-            { stat: "intelligence", min: 7, reduction: 1 }
-        ],
+        daysCost: 0,
+        hpChange: 0,
         choices: [
             { 
-                text: "Escape with data", 
+                text: "Escape with data (Intelligence ≥ 7)", 
                 target: "depot_gate",
                 condition: "intelligence >= 7",
-                extra_content: "You download Enclave files naming the saboteur.",
-                extraContentKey: "enclave_bunker_choice_0_extra",
-                on_select: { action: "add_clue", clue_id: 2 }
+                extraContentKey: "enclave_bunker_escape_data_text",
+                on_select: { action: "adjust", hp: -1, days: -1, clue: 2 }
             },
-            { text: "Escape without data", target: "depot_gate" }
+            { 
+                text: "Escape without data", 
+                target: "depot_gate",
+                extraContentKey: "enclave_bunker_escape_no_data_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            }
         ]
     },
-    "deathclaw_cave": {
+     "deathclaw_cave": {
         id: "deathclaw_cave",
-        content: "[deathclaw_cave] A deathclaw blocks the shortcut. (2 days, HP -5 if fight; Perception ≥ 7 or Agility ≥ 8 avoids damage)",
+        content: "[deathclaw_cave] A deathclaw blocks the shortcut.",
         contentKey: "deathclaw_cave_text",
         imageKey: "deathclaw_cave",
-        daysCost: 2,
-        hpChange: -5,
-        hpModifiers: [
-            { stat: "perception", min: 7, reduction: 5 },
-            { stat: "agility", min: 8, reduction: 5 }
-        ],
+        daysCost: 0,
+        hpChange: 0,
         choices: [
-            { text: "Take the shortcut", target: "depot_gate" },
-            { text: "Turn back", target: "crossroads_village" }
+            { 
+                text: "Fight the deathclaw", 
+                target: "depot_gate",
+                extraContentKey: "deathclaw_cave_fight_text",
+                on_select: { action: "adjust", hp: -5, days: -1 }
+            },
+            { 
+                text: "Sneak past (Perception ≥ 7)", 
+                target: "depot_gate",
+                condition: "perception >= 7",
+                extraContentKey: "deathclaw_cave_sneak_perception_text",
+                on_select: { action: "adjust", hp: 0, days: -2 }
+            },
+            { 
+                text: "Sneak past (Agility ≥ 8)", 
+                target: "depot_gate",
+                condition: "agility >= 8",
+                extraContentKey: "deathclaw_cave_sneak_agility_text",
+                on_select: { action: "adjust", hp: 0, days: -2 }
+            },
+            { 
+                text: "Turn back", 
+                target: "crossroads_village",
+                extraContentKey: "deathclaw_cave_turnback_text"
+            }
         ]
     },
     "ghoul_doctor": {
@@ -443,16 +585,38 @@ const storyData = {
     },
     "mirelurk_lake": {
         id: "mirelurk_lake",
-        content: "[mirelurk_lake] You fight a mirelurk. (HP -3, Strength ≥ 7 reduces to -1, Perception ≥ 6 reduces to -1)",
+        content: "[mirelurk_lake] A lake with a mirelurk.",
         contentKey: "mirelurk_lake_text",
         imageKey: "mirelurk_lake",
-        daysCost: 1,
-        hpChange: -3,
-        hpModifiers: [
-            { stat: "strength", min: 7, reduction: 2 },
-            { stat: "perception", min: 6, reduction: 2 }
-        ],
-        choices: [{ text: "Return to ghoul doctor", target: "crossroads_village" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight the mirelurk", 
+                target: "crossroads_village",
+                extraContentKey: "mirelurk_lake_fight_text",
+                on_select: { action: "adjust", hp: -3, days: -1 }
+            },
+            { 
+                text: "Fight with strength (Strength ≥ 7)", 
+                target: "crossroads_village",
+                condition: "strength >= 7",
+                extraContentKey: "mirelurk_lake_fight_strong_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Retrieve gland without fighting (Perception ≥ 6)", 
+                target: "crossroads_village",
+                condition: "perception >= 6",
+                extraContentKey: "mirelurk_lake_sneak_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Give up", 
+                target: "crossroads_village",
+                extraContentKey: "mirelurk_lake_giveup_text"
+            }
+        ]
     },
     // V. Depot
     "depot_gate": {
@@ -473,18 +637,32 @@ const storyData = {
     },
     "depot_robots": {
         id: "depot_robots",
-        content: "[depot_robots] Security robots attack. (HP -3, Agility ≥ 6 reduces to -1, Intelligence ≥ 8 reduces to 0)",
+        content: "[depot_robots] Security robots attack.",
         contentKey: "depot_robots_text",
         imageKey: "depot_robots",
-        daysCost: 1,
-        hpChange: -3,
-        hpModifiers: [
-            { stat: "agility", min: 6, reduction: 2 },
-            { stat: "intelligence", min: 8, reduction: 3 }
-        ],
+        daysCost: 0,
+        hpChange: 0,
         choices: [
-            { text: "Go to the lab", target: "depot_lab" },
-            { text: "Skip lab and go to reactor", target: "depot_reactor" }
+            { 
+                text: "Fight robots", 
+                target: "depot_lab",
+                extraContentKey: "depot_robots_fight_text",
+                on_select: { action: "adjust", hp: -3, days: -1 }
+            },
+            { 
+                text: "Fight with agility (Agility ≥ 6)", 
+                target: "depot_lab",
+                condition: "agility >= 6",
+                extraContentKey: "depot_robots_agile_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            },
+            { 
+                text: "Reprogram (Intelligence ≥ 8)", 
+                target: "depot_lab",
+                condition: "intelligence >= 8",
+                extraContentKey: "depot_robots_reprogram_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            }
         ]
     },
     "depot_armory": {
@@ -511,40 +689,79 @@ const storyData = {
             { 
                 text: "Take the holotape and go to reactor", 
                 target: "depot_reactor",
+                extraContentKey: "depot_lab_holotape_text",
                 on_select: { action: "add_clue", clue_id: 3 }
+            },
+            { 
+                text: "Leave the holotape and go to reactor", 
+                target: "depot_reactor",
+                extraContentKey: "depot_lab_leave_text"
             }
         ]
     },
     "depot_reactor": {
         id: "depot_reactor",
-        content: "[depot_reactor] Gecko nest guarding the regulator. (HP -4, Strength ≥ 7 reduces to -2, Agility ≥ 6 reduces to -1)",
+        content: "[depot_reactor] Gecko nest guarding the regulator.",
         contentKey: "depot_reactor_text",
         imageKey: "depot_reactor",
-        daysCost: 1,
-        hpChange: -4,
-        hpModifiers: [
-            { stat: "strength", min: 7, reduction: 2 },
-            { stat: "agility", min: 6, reduction: 3 }
-        ],
-        choices: [{ text: "Secure the regulator", target: "depot_escape" }]
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Fight geckos", 
+                target: "depot_escape",
+                extraContentKey: "depot_reactor_fight_text",
+                on_select: { action: "adjust", hp: -4, days: -1 }
+            },
+            { 
+                text: "Fight with strength (Strength ≥ 7)", 
+                target: "depot_escape",
+                condition: "strength >= 7",
+                extraContentKey: "depot_reactor_strong_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            },
+            { 
+                text: "Lure them away (Agility ≥ 6)", 
+                target: "depot_escape",
+                condition: "agility >= 6",
+                extraContentKey: "depot_reactor_agile_text",
+                on_select: { action: "adjust", hp: -1, days: -1 }
+            }
+        ]
     },
     "depot_escape": {
         id: "depot_escape",
-        content: "[depot_escape] Enclave arrive! Escape with regulator. (HP -2, Charisma ≥ 7 reduces to 0, Agility ≥ 7 reduces to 0)",
+        content: "[depot_escape] Enclave arrive!",
         contentKey: "depot_escape_text",
         imageKey: "depot_escape",
-        daysCost: 1,
-        hpChange: -2,
-        hpModifiers: [
-            { stat: "charisma", min: 7, reduction: 2 },
-            { stat: "agility", min: 7, reduction: 2 }
-        ],
+        daysCost: 0,
+        hpChange: 0,
         choices: [
-            { text: "Escape", target: "return_road" },
+            { 
+                text: "Escape", 
+                target: "return_road",
+                extraContentKey: "depot_escape_escape_text",
+                on_select: { action: "adjust", hp: -2, days: -1 }
+            },
+            { 
+                text: "Escape with charisma (Charisma ≥ 7)", 
+                target: "return_road",
+                condition: "charisma >= 7",
+                extraContentKey: "depot_escape_charisma_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            },
+            { 
+                text: "Escape with agility (Agility ≥ 7)", 
+                target: "return_road",
+                condition: "agility >= 7",
+                extraContentKey: "depot_escape_agile_text",
+                on_select: { action: "adjust", hp: 0, days: -1 }
+            },
             { 
                 text: "Confront (requires Enclave data)", 
                 target: "depot_climax_alt",
-                condition: "hasFlag:clue_2"
+                condition: "hasFlag:clue_2",
+                extraContentKey: "depot_escape_confront_text"
             }
         ]
     },
@@ -988,10 +1205,19 @@ function loadNode(nodeId) {
                     gameState.special[choice.on_select.stat1] += 1;
                     gameState.special[choice.on_select.stat2] += 1;
                     gameState.daysLeft -= choice.on_select.daysCost;
+                } else if (choice.on_select.action === "adjust") {
+                    if (choice.on_select.hp) gameState.hp += choice.on_select.hp;
+                    if (choice.on_select.days) gameState.daysLeft += choice.on_select.days;
+                    if (choice.on_select.clue) {
+                        gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
+                        gameState.flags[`clue_${choice.on_select.clue}`] = true;
+                    }
+                    if (gameState.hp > gameState.maxHp) gameState.hp = gameState.maxHp;
+                    if (gameState.hp < 0) gameState.hp = 0;
                     updateStatsDisplay();
                     saveGame();
-                    shouldStay = true;
-                }
+                    shouldStay = false;
+                }   
             }
 
             // Show extra content if any
