@@ -90,9 +90,214 @@ const storyData = {
         hpModifiers: [
             { stat: "endurance", min: 6, reduction: 1 }
         ],
-        choices: [{ text: "Step into the wasteland", target: "road_1" }]
+		choices: [{ text: "Step into the wasteland", target: "ruined_town_square", on_select: { action: "adjust", days: -1, hp: 0 } }]
     },
-    // II. First Hub
+    // II. Ruined Town hub
+    "ruined_town_square": {
+    id: "ruined_town_square",
+    content: "[ruined_town_square] A ruined town square, buildings gutted by fire.",
+    contentKey: "ruined_town_square_text",
+    imageKey: "ruined_town_square",
+    daysCost: 0,
+    hpChange: 0,
+    choices: [
+        { text: "Search the abandoned shop", target: "abandoned_shop" },
+        { text: "Climb the watchtower", target: "watchtower" },
+        { text: "Investigate the crashed vertibird", target: "crashed_vertibird" },
+        { text: "Climb the radio tower", target: "radio_tower" },
+        { text: "Drink from the well", target: "well" },
+        { text: "Explore the ruined church", target: "church_ruin" }
+    ]
+    },
+    "abandoned_shop": {
+        id: "abandoned_shop",
+        content: "[abandoned_shop] A collapsed general store.",
+        contentKey: "abandoned_shop_text",
+        imageKey: "abandoned_shop",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Search for supplies", 
+                target: "abandoned_shop_after",
+                extraContentKey: "abandoned_shop_search_text",
+                on_select: { action: "adjust", hp: -2, days: 0 }
+            }
+        ]
+    },
+    "abandoned_shop_after": {
+        id: "abandoned_shop_after",
+        content: "",
+        contentKey: "abandoned_shop_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" },
+            { text: "Exit to the road (road_1)", target: "road_1", on_select: { action: "adjust", days: -1, hp: 0 } }
+        ]
+    },
+    "watchtower": {
+        id: "watchtower",
+        content: "[watchtower] A wooden watchtower.",
+        contentKey: "watchtower_text",
+        imageKey: "watchtower",
+        daysCost: 0,
+        hpChange: 0,
+		choices: [
+			{ 
+				text: "Climb the tower", 
+				target: "watchtower_after",
+				extraContentKey: "watchtower_climb_text",
+				on_select: { action: "adjust", hp: -1, days: 0 }
+			},
+			{ 
+				text: "Use perception to find safe steps (Perception ≥ 6)", 
+				target: "watchtower_after",
+				condition: "perception >= 6",
+				extraContentKey: "watchtower_climb_perception_text",
+				on_select: { action: "adjust", hp: 0, days: 0 }
+			}
+		]
+    },
+    "watchtower_after": {
+        id: "watchtower_after",
+        content: "",
+        contentKey: "watchtower_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" },
+            { text: "Exit to NCR checkpoint", target: "ncr_checkpoint", on_select: { action: "adjust", days: -1, hp: 0 } }
+        ]
+    },
+    "crashed_vertibird": {
+        id: "crashed_vertibird",
+        content: "[crashed_vertibird] A downed Vertibird.",
+        contentKey: "crashed_vertibird_text",
+        imageKey: "crashed_vertibird",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { 
+                text: "Loot the wreckage", 
+                target: "crashed_vertibird_after",
+                extraContentKey: "vertibird_loot_text",
+                on_select: { action: "adjust", hp: 0, days: 0 } // luck effect in extra text only
+            }
+        ]
+    },
+    "crashed_vertibird_after": {
+        id: "crashed_vertibird_after",
+        content: "",
+        contentKey: "crashed_vertibird_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" },
+            { text: "Exit to the road (road_1)", target: "road_1", on_select: { action: "adjust", days: -1, hp: 0 } }
+        ]
+    },
+	"radio_tower": {
+		id: "radio_tower",
+		content: "[radio_tower] A rusted radio tower.",
+		contentKey: "radio_tower_text",
+		imageKey: "radio_tower",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Try to hack the terminal", 
+				target: "radio_tower_after",
+				extraContentKey: "radio_hack_text",
+				on_select: { action: "adjust", hp: -1, days: 0 }
+			},
+			{ 
+				text: "Hack carefully (Intelligence ≥ 6)", 
+				target: "radio_tower_after",
+				condition: "intelligence >= 6",
+				extraContentKey: "radio_hack_intelligent_text",
+				on_select: { action: "adjust", hp: 0, days: 0 }
+			}
+		]
+	},
+    "radio_tower_after": {
+        id: "radio_tower_after",
+        content: "",
+        contentKey: "radio_tower_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" },
+            { text: "Exit to NCR checkpoint", target: "ncr_checkpoint", on_select: { action: "adjust", days: -1, hp: 0 } }
+        ]
+    },
+	"well": {
+		id: "well",
+		content: "[well] An old stone well.",
+		contentKey: "well_text",
+		imageKey: "well",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Drink from the well", 
+				target: "well_after",
+				extraContentKey: "well_drink_text",
+				on_select: { action: "adjust", hp: 1, days: 0 }
+			},
+			{ 
+				text: "Drink carefully (Luck ≥ 6)", 
+				target: "well_after",
+				condition: "luck >= 6",
+				extraContentKey: "well_drink_lucky_text",
+				on_select: { action: "adjust", hp: 2, days: 0 }
+			}
+		]
+	},
+    "well_after": {
+        id: "well_after",
+        content: "",
+        contentKey: "well_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" }
+        ]
+    },
+	"church_ruin": {
+		id: "church_ruin",
+		content: "[church_ruin] A ruined church.",
+		contentKey: "church_ruin_text",
+		imageKey: "church_ruin",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Explore the ruins", 
+				target: "church_ruin_after",
+				extraContentKey: "church_explore_text",
+				on_select: { action: "adjust", hp: -1, days: 0 }
+			},
+			{ 
+				text: "Explore carefully (Perception ≥ 6)", 
+				target: "church_ruin_after",
+				condition: "perception >= 6",
+				extraContentKey: "church_explore_perceptive_text",
+				on_select: { action: "adjust", hp: 0, days: 0 }
+			}
+		]
+	},
+    "church_ruin_after": {
+        id: "church_ruin_after",
+        content: "",
+        contentKey: "church_ruin_after_text",
+        daysCost: 0,
+        hpChange: 0,
+        choices: [
+            { text: "Return to town square", target: "ruined_town_square" }
+        ]
+    },
+    // III. First road Hub
     "road_1": {
         id: "road_1",
         content: "[road_1] A ruined highway. Several paths lead away.",
@@ -134,11 +339,11 @@ const storyData = {
                 on_select: { action: "adjust", hp: -3, days: -1 }
             },
             { 
-                text: "Fight carefully (Agility ≥ 6)", 
-                target: "wasteland_junction",
-                condition: "agility >= 6",
-                extraContentKey: "ncr_raid_fight_agile_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
+				text: "Use perception to spot enemy positions (Perception ≥ 6)", 
+				target: "wasteland_junction",
+				condition: "perception >= 6",
+				extraContentKey: "ncr_raid_fight_perception_text",
+				on_select: { action: "adjust", hp: -1, days: -1 }
             }
         ]
     },
@@ -154,18 +359,60 @@ const storyData = {
             { text: "Ignore", target: "wasteland_junction" }
         ]
     },
-    "brotherhood_patrol_base": {
-        id: "brotherhood_patrol_base",
-        content: "[brotherhood_patrol_base] Small Brotherhood camp. They offer a quest.",
-        contentKey: "brotherhood_patrol_base_text",
-        imageKey: "brotherhood_patrol_base",
-        daysCost: 1,
-        hpChange: 0,
-        choices: [
-            { text: "Accept quest", target: "wasteland_junction" },
-            { text: "Decline", target: "wasteland_junction" }
-        ]
-    },
+	"brotherhood_patrol_base": {
+		id: "brotherhood_patrol_base",
+		content: "[brotherhood_patrol_base] Small Brotherhood camp. They offer a quest.",
+		contentKey: "brotherhood_patrol_base_text",
+		imageKey: "brotherhood_patrol_base",
+		daysCost: 0,  // removed node‑wide cost
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Rest here", 
+				target: "brotherhood_patrol_base",
+				extraContentKey: "brotherhood_patrol_base_rest_text",
+				on_select: { action: "adjust", hp: 2, days: -2 }
+			},
+			{ 
+				text: "Help the scribe with the malfunctioning robot", 
+				target: "brotherhood_robot_fight",
+				extraContentKey: "brotherhood_patrol_base_help_text"
+			},
+			{ 
+				text: "Leave", 
+				target: "wasteland_junction",
+				extraContentKey: "brotherhood_patrol_base_leave_text"
+			}
+		]
+	},
+	"brotherhood_robot_fight": {
+		id: "brotherhood_robot_fight",
+		content: "[brotherhood_robot_fight] The scribe leads you to a decommissioned sentry bot that has gone haywire.",
+		contentKey: "brotherhood_robot_fight_text",
+		imageKey: "brotherhood_robot_fight",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Fight the robot head‑on", 
+				target: "brotherhood_patrol_base",
+				extraContentKey: "brotherhood_robot_fight_normal_text",
+				on_select: { action: "adjust", hp: -6, days: -1, stat_bonus: "intelligence", stat_bonus_value: 1 }
+			},
+			{ 
+				text: "Use your intelligence to disable it (Intelligence ≥ 7)", 
+				target: "brotherhood_patrol_base",
+				condition: "intelligence >= 7",
+				extraContentKey: "brotherhood_robot_fight_intelligent_text",
+				on_select: { action: "adjust", hp: -2, days: -1, stat_bonus: "intelligence", stat_bonus_value: 1 }
+			},
+			{ 
+				text: "Back down and leave", 
+				target: "brotherhood_patrol_base",
+				extraContentKey: "brotherhood_robot_fight_retreat_text"
+			}
+		]
+	},
     "ghoul_hermit": {
         id: "ghoul_hermit",
         content: "[ghoul_hermit] A ghoul hermit wants you to clear a bloatfly nest.",
@@ -237,7 +484,7 @@ const storyData = {
             }
         ]
     },
-    // III. Interlude (expanded)
+    // IV. Wasteland Junction hub
     "wasteland_junction": {
         id: "wasteland_junction",
         content: "[wasteland_junction] A fork in the road. You see a merchant, a shack, a trail, and a faint campfire glow in the distance.",
@@ -289,10 +536,10 @@ const storyData = {
             on_select: { action: "adjust", hp: -2, days: -1 }
         },
         { 
-            text: "Fight with agility (Agility ≥ 6)", 
+            text: "Rely on luck (Luck ≥ 7)", 
             target: "wasteland_junction",
-            condition: "agility >= 6",
-            extraContentKey: "wasteland_ambush_fight_agile_text",
+            condition: "luck >= 7",
+            extraContentKey: "wasteland_ambush_luck_text",
             on_select: { action: "adjust", hp: -1, days: -1 }
         },
         { 
@@ -332,12 +579,12 @@ const storyData = {
             { 
                 text: "Train (lose 2 days, Strength +1, Endurance +1)", 
                 target: "training_grounds",
-                on_select: { action: "train", stat1: "strength", stat2: "endurance", daysCost: -2 }
+                on_select: { action: "train", stat1: "strength", stat2: "endurance", daysCost: 2 }
             },
             { text: "Leave", target: "wasteland_junction" }
         ]
     },
-    // IV. Second Hub
+    // V. Second Hub
     "crossroads_village": {
         id: "crossroads_village",
         content: "[crossroads_village] A small settlement. You can rest, trade, or take quests.",
@@ -352,18 +599,61 @@ const storyData = {
             { text: "Investigate Enclave rumors", target: "enclave_rumor" },
             { text: "Explore the deathclaw cave", target: "deathclaw_cave" },
             { text: "Visit the ghoul doctor", target: "ghoul_doctor" },
-            { text: "Head directly to the Depot", target: "depot_gate" }
+            { text: "Head directly to the Depot", target: "depot_gate" },
+			{ 
+                text: "Rest here", 
+                target: "crossroads_village",
+                extraContentKey: "crossroads_village_rest_text",
+                on_select: { action: "adjust", hp: 2, days: -2 }
+            }
         ]
     },
-    "village_trader": {
-        id: "village_trader",
-        content: "[village_trader] You browse goods.",
-        contentKey: "village_trader_text",
-        imageKey: "village_trader",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Return to village", target: "crossroads_village" }]
-    },
+	"village_trader": {
+		id: "village_trader",
+		content: "[village_trader] You browse goods.",
+		contentKey: "village_trader_text",
+		imageKey: "village_trader",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Buy Buffout (Strength +1, -2 HP)", 
+				target: "crossroads_village",
+				condition: "hasFlag:bought_drug === false",
+				extraContentKey: "village_trader_buffout_text",
+				on_select: { action: "adjust", hp: -2, stat_bonus: "strength", stat_bonus_value: 1, set_flag: "bought_drug" }
+			},
+			{ 
+				text: "Buy Mentats (Perception +1, -2 HP)", 
+				target: "crossroads_village",
+				condition: "hasFlag:bought_drug === false",
+				extraContentKey: "village_trader_mentats_text",
+				on_select: { action: "adjust", hp: -2, stat_bonus: "perception", stat_bonus_value: 1, set_flag: "bought_drug" }
+			},
+			{ 
+				text: "Buy Jet (Agility +1, -2 HP)", 
+				target: "crossroads_village",
+				condition: "hasFlag:bought_drug === false",
+				extraContentKey: "village_trader_jet_text",
+				on_select: { action: "adjust", hp: -2, stat_bonus: "agility", stat_bonus_value: 1, set_flag: "bought_drug" }
+			},
+			{ 
+				text: "Buy Psycho (Endurance +1, -2 HP)", 
+				target: "crossroads_village",
+				condition: "hasFlag:bought_drug === false",
+				extraContentKey: "village_trader_psycho_text",
+				on_select: { action: "adjust", hp: -2, stat_bonus: "endurance", stat_bonus_value: 1, set_flag: "bought_drug" }
+			},
+			{ 
+				text: "Buy RadAway (remove radiation?) – not implemented", 
+				target: "crossroads_village",
+				condition: "hasFlag:bought_drug === false",
+				extraContentKey: "village_trader_placeholder_text",
+				on_select: { action: "adjust", hp: -2, set_flag: "bought_drug" }
+			},
+			{ text: "Just browse", target: "crossroads_village" }
+		]
+	},
     "ncr_village_contact": {
         id: "ncr_village_contact",
         content: "[ncr_village_contact] An NCR agent asks you to deliver a message.",
@@ -410,11 +700,11 @@ const storyData = {
                 on_select: { action: "adjust", hp: -2, days: -1 }
             },
             { 
-                text: "Assault with agility (Agility ≥ 6)", 
-                target: "depot_gate",
-                condition: "agility >= 6",
-                extraContentKey: "raider_camp_assault_agile_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
+				text: "Use intelligence to sabotage supplies (Intelligence ≥ 6)", 
+				target: "depot_gate",
+				condition: "intelligence >= 6",
+				extraContentKey: "raider_camp_intelligence_text",
+				on_select: { action: "adjust", hp: -2, days: -1 }
             }
         ]
     },
@@ -551,14 +841,14 @@ const storyData = {
                 on_select: { action: "adjust", hp: -5, days: -1 }
             },
             { 
-                text: "Sneak past (Perception ≥ 7)", 
+                text: "Sneak past (Perception ≥ 7), takes 2 days", 
                 target: "depot_gate",
                 condition: "perception >= 7",
                 extraContentKey: "deathclaw_cave_sneak_perception_text",
                 on_select: { action: "adjust", hp: 0, days: -2 }
             },
             { 
-                text: "Sneak past (Agility ≥ 8)", 
+                text: "Sneak past (Agility ≥ 8), takes 2 days", 
                 target: "depot_gate",
                 condition: "agility >= 8",
                 extraContentKey: "deathclaw_cave_sneak_agility_text",
@@ -618,7 +908,7 @@ const storyData = {
             }
         ]
     },
-    // V. Depot
+    // VI. Depot
     "depot_gate": {
         id: "depot_gate",
         content: "[depot_gate] The entrance to the military depot.",
@@ -650,11 +940,11 @@ const storyData = {
                 on_select: { action: "adjust", hp: -3, days: -1 }
             },
             { 
-                text: "Fight with agility (Agility ≥ 6)", 
-                target: "depot_lab",
-                condition: "agility >= 6",
-                extraContentKey: "depot_robots_agile_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
+				text: "Use perception to find a safe path (Perception ≥ 6)", 
+				target: "depot_lab",
+				condition: "perception >= 6",
+				extraContentKey: "depot_robots_perception_text",
+				on_select: { action: "adjust", hp: -1, days: -1 }
             },
             { 
                 text: "Reprogram (Intelligence ≥ 8)", 
@@ -777,10 +1067,10 @@ const storyData = {
                 text: "Leave", 
                 target: "return_road",
                 on_select: { action: "set_flag", flag: "confronted_enclave", value: true }
-            }
+            } 
         ]
     },
-    // VI. Return & Resolution
+    // VII. Return & Resolution
     "return_road": {
         id: "return_road",
         content: "[return_road] You travel back to Vault 42. (1 day passes)",
@@ -799,15 +1089,27 @@ const storyData = {
         hpChange: 0,
         choices: [{ text: "Proceed to trial", target: "trial_start" }]
     },
-    "trial_start": {
-        id: "trial_start",
-        content: "You stand before the vault council. The saboteur must be identified.",
-        contentKey: "trial_start_text",
-        imageKey: "trial_start",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Present the evidence", target: "determine_culprit" }]
-    },
+	"trial_start": {
+		id: "trial_start",
+		content: "You stand before the vault council. The saboteur must be identified.",
+		contentKey: "trial_start_text",
+		imageKey: "trial_start",
+		daysCost: 0,
+		hpChange: 0,
+		choices: [
+			{ 
+				text: "Present the evidence", 
+				target: "determine_culprit",
+				condition: "hasFlag:has_any_clue",
+				extraContentKey: "trial_start_evidence_text"
+			},
+			{ 
+				text: "Admit you have no proof", 
+				target: "determine_culprit",
+				extraContentKey: "trial_start_no_evidence_text"
+			}
+		]
+	},
     "determine_culprit": {
         id: "determine_culprit",
         content: "",
@@ -1188,6 +1490,7 @@ function loadNode(nodeId) {
                 if (choice.on_select.action === "add_clue") {
                     gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
                     gameState.flags[`clue_${choice.on_select.clue_id}`] = true;
+                    gameState.flags.has_any_clue = true;
                     saveGame();
                 } else if (choice.on_select.action === "set_sentence") {
                     gameState.flags.sentence = choice.on_select.sentence;
@@ -1204,14 +1507,21 @@ function loadNode(nodeId) {
                 } else if (choice.on_select.action === "train") {
                     gameState.special[choice.on_select.stat1] += 1;
                     gameState.special[choice.on_select.stat2] += 1;
-                    gameState.daysLeft -= choice.on_select.daysCost;
+                    gameState.daysLeft -= choice.on_select.daysCost; // daysCost should be positive (e.g., 2)
+					    updateStatsDisplay();
+						saveGame();
+						shouldStay = true;	
                 } else if (choice.on_select.action === "adjust") {
                     if (choice.on_select.hp) gameState.hp += choice.on_select.hp;
                     if (choice.on_select.days) gameState.daysLeft += choice.on_select.days;
                     if (choice.on_select.clue) {
                         gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
                         gameState.flags[`clue_${choice.on_select.clue}`] = true;
+                        gameState.flags.has_any_clue = true;
                     }
+					if (choice.on_select.stat_bonus) {
+						gameState.special[choice.on_select.stat_bonus] += choice.on_select.stat_bonus_value;
+					}
                     if (gameState.hp > gameState.maxHp) gameState.hp = gameState.maxHp;
                     if (gameState.hp < 0) gameState.hp = 0;
                     updateStatsDisplay();

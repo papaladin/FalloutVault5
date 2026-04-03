@@ -225,6 +225,7 @@ svg { width: 100%; height: 100%; display: block; }
   <div id="status">Awaiting data file&hellip;</div>
   <div id="legend"></div>
   <div id="controls">
+    <button class="ctrl-btn" id="btn-clear">[ CLEAR SELECTION ]</button>
     <button class="ctrl-btn" id="btn-fit">[ FIT VIEW ]</button>
   </div>
 </div>
@@ -247,8 +248,8 @@ svg { width: 100%; height: 100%; display: block; }
 // ═══════════════════════════════════════════════
 function parseSections(code) {
   const lines = code.split('\n');
-  const sectionMap = {};   // nodeId → { name, index }
-  const sectionList = [];  // ordered list of sections
+  const sectionMap = {};
+  const sectionList = [];
   let curSec = { name: 'Unknown', index: 0 };
 
   const secRe = /\/\/\s+([IVX]+\.\s+[\w\s&'-]+?)(?:\s*$)/;
@@ -275,20 +276,12 @@ function parseSections(code) {
 }
 
 // ═══════════════════════════════════════════════
-// SYNTAX FIXER
-// Auto-repairs missing commas between object
-// entries that JS sections comments can mask
-// e.g.  }          }
-//       // comment  →  },
-//       "nextKey":     "nextKey":
+// SYNTAX FIXER (same as before)
 // ═══════════════════════════════════════════════
 function fixSyntax(code) {
-  // Insert missing comma between closing } of one entry and opening " of next key
-  // Pattern: }  <optional whitespace/comments>  "someKey" :
   return code.replace(
     /(\})\s*((?:\/\/[^\n]*\n\s*)*)\s*("(?:[a-z][a-z0-9_]*)")\s*:/g,
     (match, brace, mid, key) => {
-      // Only fix if no comma already
       const trimmed = mid.trimStart();
       return `${brace},\n    ${trimmed}${key}:`;
     }
@@ -297,10 +290,8 @@ function fixSyntax(code) {
 
 // ═══════════════════════════════════════════════
 // STORY DATA EXTRACTOR
-// Safely eval's game.js with a mocked DOM
 // ═══════════════════════════════════════════════
 function extractStoryData(code) {
-  // First attempt: raw code
   const attempt = (src) => {
     try {
       const mockEl = () => ({
@@ -329,31 +320,41 @@ function extractStoryData(code) {
 
   let result = attempt(code);
   if (result && !result.error) return result;
-
-  // Second attempt: apply syntax fixer
-  console.warn('First parse failed, attempting syntax repair…', result.error);
   const fixed = fixSyntax(code);
   result = attempt(fixed);
   if (result && !result.error) return result;
-
   console.error('Extraction failed after repair:', result.error);
   return null;
 }
 
 // ═══════════════════════════════════════════════
-// BFS LEVEL ASSIGNMENT
+// IMPROVED LEVEL ASSIGNMENT (handles disconnected graphs)
 // ═══════════════════════════════════════════════
-function computeLevels(nodes, edges) {
+function assignLevels(nodes, edges) {
   const adj = {};
   for (const n of nodes) adj[n.id] = [];
   for (const e of edges) {
     if (adj[e.from] && !adj[e.from].includes(e.to)) adj[e.from].push(e.to);
+    if (adj[e.to] && !adj[e.to].includes(e.from)) adj[e.to].push(e.from);
   }
+
+  // Find the main start node: prefer 'vault_start', otherwise the node with highest degree
+  let startId = 'vault_start';
+  if (!nodes.find(n => n.id === startId)) {
+    let maxDegree = -1;
+    for (const n of nodes) {
+      const deg = (adj[n.id] || []).length;
+      if (deg > maxDegree) {
+        maxDegree = deg;
+        startId = n.id;
+      }
+    }
+  }
+
+  // BFS from startId
   const levels = {};
-  const startId = nodes[0]?.id;
-  if (!startId) return levels;
-  levels[startId] = 0;
   const queue = [startId];
+  levels[startId] = 0;
   while (queue.length) {
     const cur = queue.shift();
     for (const nxt of (adj[cur] || [])) {
@@ -363,26 +364,22 @@ function computeLevels(nodes, edges) {
       }
     }
   }
-  const maxL = Math.max(0, ...Object.values(levels));
+
+  // Assign levels to remaining nodes (disconnected components)
+  let nextLevel = Math.max(0, ...Object.values(levels)) + 1;
   for (const n of nodes) {
-    if (levels[n.id] === undefined) levels[n.id] = maxL + 1;
+    if (levels[n.id] === undefined) {
+      levels[n.id] = nextLevel++;
+    }
   }
   return levels;
 }
 
 // ═══════════════════════════════════════════════
-// COLOR PALETTE (terminal aesthetic)
+// COLOR PALETTE
 // ═══════════════════════════════════════════════
 const PALETTE = [
-  '#39ff14', // 1 – Vault (phosphor green)
-  '#00e5ff', // 2 – First Hub (cyan)
-  '#fff176', // 3 – Interlude (pale yellow)
-  '#ffb300', // 4 – Second Hub (amber)
-  '#ff6b6b', // 5 – Depot (red)
-  '#ce93d8', // 6 – Resolution (purple)
-  '#80cbc4', // 7+
-  '#a5d6a7',
-  '#ffcc80',
+  '#39ff14', '#00e5ff', '#fff176', '#ffb300', '#ff6b6b', '#ce93d8', '#80cbc4', '#a5d6a7', '#ffcc80'
 ];
 function secColor(idx) {
   if (!idx || idx === 0) return '#546e7a';
@@ -390,9 +387,7 @@ function secColor(idx) {
 }
 
 // ═══════════════════════════════════════════════
-// RECT EDGE INTERSECTION
-// Returns the point on the rectangle border where
-// a line from (sx,sy) to (tx,ty) exits
+// RECT EDGE INTERSECTION (same as before)
 // ═══════════════════════════════════════════════
 function rectEdge(sx, sy, tx, ty, hw, hh) {
   const dx = tx - sx, dy = ty - sy;
@@ -410,6 +405,10 @@ function rectEdgeFrom(sx, sy, tx, ty, hw, hh) {
 // MAIN RENDER
 // ═══════════════════════════════════════════════
 let sim = null;
+let selectedNodeId = null;
+let nodeGroups = null;
+let edgePaths = null;
+let adjMap = null;
 
 function renderGraph(storyData, sectionMap, sectionList) {
   if (sim) { sim.stop(); sim = null; }
@@ -420,7 +419,7 @@ function renderGraph(storyData, sectionMap, sectionList) {
   const W = document.getElementById('svg-wrap').offsetWidth;
   const H = document.getElementById('svg-wrap').offsetHeight;
 
-  // Pre-scan: find self-loop nodes (rest/train actions that target themselves)
+  // Self‑loop detection
   const selfLoopNodes = new Set();
   for (const node of Object.values(storyData)) {
     for (const ch of (node.choices || [])) {
@@ -428,7 +427,7 @@ function renderGraph(storyData, sectionMap, sectionList) {
     }
   }
 
-  // Build node list (hasLoop now available)
+  // Nodes list
   const nodes = Object.values(storyData).map(n => ({
     id: n.id,
     content: n.content || '',
@@ -443,37 +442,46 @@ function renderGraph(storyData, sectionMap, sectionList) {
     hasLoop: selfLoopNodes.has(n.id),
   }));
 
-  // Build edge list — self-loops excluded (shown as node badge instead)
+  // Edges (no self‑loops)
   const rawEdges = [];
   for (const node of Object.values(storyData)) {
     for (const ch of (node.choices || [])) {
       if (!ch.target || ch.target === 'RESTART') continue;
-      if (ch.target === node.id) continue; // self-loop: skip arrow
+      if (ch.target === node.id) continue;
       rawEdges.push({
         from: node.id,
         to: ch.target,
         text: ch.text || '',
-        // conditional: stat check (simple or "or"), flag check
         conditional: !!ch.condition,
       });
     }
   }
 
-  // BFS levels & initial positions
-  const levels = computeLevels(nodes, rawEdges);
+  // Adjacency for highlighting
+  adjMap = new Map();
+  for (const e of rawEdges) {
+    if (!adjMap.has(e.from)) adjMap.set(e.from, new Set());
+    if (!adjMap.has(e.to)) adjMap.set(e.to, new Set());
+    adjMap.get(e.from).add(e.to);
+    adjMap.get(e.to).add(e.from);
+  }
+
+  // Level assignment (disconnected‑aware)
+  const levels = assignLevels(nodes, rawEdges);
   const maxLevel = Math.max(...Object.values(levels));
 
+  // Group by level
   const byLevel = {};
   for (const n of nodes) {
-    const l = levels[n.id] ?? maxLevel;
+    const l = levels[n.id];
     n.level = l;
     if (!byLevel[l]) byLevel[l] = [];
     byLevel[l].push(n);
   }
 
+  // Layout parameters
   const PAD_X = 80, PAD_Y = 55;
   const levelH = (H - PAD_Y * 2) / (maxLevel + 1);
-
   for (const [lStr, ns] of Object.entries(byLevel)) {
     const l = parseInt(lStr);
     const gap = (W - PAD_X * 2) / (ns.length + 1);
@@ -483,13 +491,10 @@ function renderGraph(storyData, sectionMap, sectionList) {
     });
   }
 
-  // Node size
   const NW = 92, NH = 22;
 
-  // ── SVG structure ──
+  // SVG structure
   const defs = svg.append('defs');
-
-  // Arrowheads
   function mkArrow(id, color) {
     defs.append('marker')
       .attr('id', id)
@@ -501,15 +506,13 @@ function renderGraph(storyData, sectionMap, sectionList) {
   }
   mkArrow('arr', '#2d6e2d');
   mkArrow('arr-cond', '#ffb300');
-  mkArrow('arr-go', '#884444');
 
-  // Zoom container
   const root = svg.append('g').attr('id', 'root');
   const zoomBehavior = d3.zoom().scaleExtent([0.08, 5])
     .on('zoom', e => root.attr('transform', e.transform));
   svg.call(zoomBehavior);
 
-  // Section band backgrounds
+  // Section bands
   const bandG = root.append('g');
   const secInfo = {};
   for (const n of nodes) {
@@ -539,30 +542,29 @@ function renderGraph(storyData, sectionMap, sectionList) {
       .text('// ' + name.toUpperCase());
   }
 
-  // Edge layer
   const edgeLayer = root.append('g');
-  // Node layer
   const nodeLayer = root.append('g');
 
-  // D3 link data (will be mutated by forceLink)
   const links = rawEdges.map(e => ({
-    ...e, source: e.from, target: e.to
+    ...e,
+    fromId: e.from,
+    toId: e.to,
+    source: e.from,
+    target: e.to
   }));
 
-  // Draw edges
-  const edgePaths = edgeLayer.selectAll('path')
+  edgePaths = edgeLayer.selectAll('path')
     .data(links)
     .join('path')
     .attr('class', d => 'edge' + (d.conditional ? ' edge-cond' : ''))
-    .attr('stroke', d => d.conditional ? '#ffb300' : d.from?.startsWith?.('game_over') ? '#884444' : '#2d6e2d')
+    .attr('stroke', d => d.conditional ? '#ffb300' : '#2d6e2d')
     .attr('stroke-width', d => d.conditional ? 1.5 : 1.3)
     .attr('stroke-dasharray', d => d.conditional ? '5,3' : null)
     .attr('fill', 'none')
     .attr('opacity', 0.65)
     .attr('marker-end', d => d.conditional ? 'url(#arr-cond)' : 'url(#arr)');
 
-  // Draw nodes
-  const nodeGroups = nodeLayer.selectAll('g')
+  nodeGroups = nodeLayer.selectAll('g')
     .data(nodes)
     .join('g')
     .attr('class', 'node-g')
@@ -573,9 +575,18 @@ function renderGraph(storyData, sectionMap, sectionList) {
     )
     .on('mouseover', (ev, d) => showTT(ev, d))
     .on('mousemove', ev => moveTT(ev))
-    .on('mouseout', hideTT);
+    .on('mouseout', hideTT)
+    .on('click', (ev, d) => {
+      if (selectedNodeId === d.id) {
+        selectedNodeId = null;
+        document.getElementById('btn-clear').innerHTML = '[ CLEAR SELECTION ]';
+      } else {
+        selectedNodeId = d.id;
+        document.getElementById('btn-clear').innerHTML = `[ SELECTED: ${d.id} ]`;
+      }
+      updateHighlight();
+    });
 
-  // Node rectangle
   nodeGroups.append('rect')
     .attr('class', 'node-rect')
     .attr('width', NW).attr('height', NH)
@@ -591,16 +602,11 @@ function renderGraph(storyData, sectionMap, sectionList) {
     .attr('stroke-width', d => (d.isLogic || d.isDynamic || d.isGameOver) ? 2 : 1)
     .attr('fill-opacity', 0.88);
 
-  // Node label (truncated)
   nodeGroups.append('text')
     .attr('class', 'node-label')
     .attr('dy', '0.1em')
-    .text(d => {
-      const s = d.id;
-      return s.length <= 14 ? s : s.substring(0, 13) + '…';
-    });
+    .text(d => d.id.length <= 14 ? d.id : d.id.substring(0, 13) + '…');
 
-  // Special icon overlay (right side of node)
   nodeGroups.filter(d => d.daysCost > 0 || d.hpChange < 0)
     .append('text')
     .attr('class', 'node-icon')
@@ -618,7 +624,6 @@ function renderGraph(storyData, sectionMap, sectionList) {
       return s;
     });
 
-  // Self-loop badge (↺ icon on nodes with rest/train in-place actions)
   nodeGroups.filter(d => d.hasLoop)
     .append('text')
     .attr('x', -NW/2 + 5)
@@ -631,7 +636,6 @@ function renderGraph(storyData, sectionMap, sectionList) {
     .attr('pointer-events', 'none')
     .text('↺');
 
-  // ── Simulation ──
   sim = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d => d.id).distance(75).strength(0.18))
     .force('charge', d3.forceManyBody().strength(-220))
@@ -641,25 +645,6 @@ function renderGraph(storyData, sectionMap, sectionList) {
     .alphaDecay(0.018)
     .on('tick', tick);
 
-  function edgePath(d) {
-    const sx = d.source.x ?? 0, sy = d.source.y ?? 0;
-    const tx = d.target.x ?? 0, ty = d.target.y ?? 0;
-
-    // Intersect with source/target rects
-    const [x1, y1] = rectEdgeFrom(sx, sy, tx, ty, NW/2, NH/2);
-    const [x2, y2] = rectEdge(sx, sy, tx, ty, NW/2 + 2, NH/2 + 2);
-
-    const dx = tx - sx, dy = ty - sy;
-    // Slight curve perpendicular to the edge
-    const len = Math.sqrt(dx*dx + dy*dy) || 1;
-    const bend = Math.min(30, len * 0.18);
-    const mx = (x1 + x2) / 2 + (dy / len) * bend * (Math.random() > 0.5 ? 1 : -1 );
-    const my = (y1 + y2) / 2 - (dx / len) * bend * (Math.random() > 0.5 ? 1 : -1 );
-
-    return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
-  }
-
-  // Precompute stable bend directions per edge to avoid flickering
   links.forEach(l => {
     l._bend = (Math.random() > 0.5 ? 1 : -1);
   });
@@ -682,7 +667,23 @@ function renderGraph(storyData, sectionMap, sectionList) {
     nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
   }
 
-  // ── Legend ──
+  function updateHighlight() {
+    if (!selectedNodeId) {
+      nodeGroups.attr('opacity', 1);
+      edgePaths.attr('opacity', 0.65);
+      return;
+    }
+    const neighbors = adjMap.get(selectedNodeId) || new Set();
+    neighbors.add(selectedNodeId);
+    nodeGroups.attr('opacity', d => neighbors.has(d.id) ? 1 : 0.2);
+    edgePaths.attr('opacity', d => {
+      const src = d.fromId, tgt = d.toId;
+      return (neighbors.has(src) && neighbors.has(tgt)) ? 0.8 : 0.1;
+    });
+  }
+  updateHighlight();
+
+  // Legend & status
   const legendDiv = document.getElementById('legend');
   legendDiv.innerHTML = '';
   for (const sec of sectionList) {
@@ -691,30 +692,30 @@ function renderGraph(storyData, sectionMap, sectionList) {
     el.innerHTML = `<div class="leg-dot" style="background:${secColor(sec.index)}"></div><span>${sec.name}</span>`;
     legendDiv.appendChild(el);
   }
-  // Game Over entry
   const go = document.createElement('div');
   go.className = 'leg';
   go.innerHTML = `<div class="leg-dot" style="background:#546e7a"></div><span>Game Over</span>`;
   legendDiv.appendChild(go);
-  // Conditional edge entry
   const ce = document.createElement('div');
   ce.className = 'leg';
   ce.innerHTML = `<div class="leg-dot" style="background:#ffb300;border-radius:0"></div><span>Conditional / OR path</span>`;
   legendDiv.appendChild(ce);
-  // Self-loop entry
   const le = document.createElement('div');
   le.className = 'leg';
   le.innerHTML = `<span style="font-size:11px;margin-right:4px;opacity:0.7">↺</span><span>In-place action</span>`;
   legendDiv.appendChild(le);
 
-  // ── Status ──
   const cond = rawEdges.filter(e => e.conditional).length;
   document.getElementById('status').innerHTML =
     `<span class="ok">✓</span> ${nodes.length} nodes &middot; ${rawEdges.length} paths &middot; ${cond} conditional &middot; ${selfLoopNodes.size} in-place`;
 
-  // ── Fit ──
   setTimeout(fitView, 1400);
   document.getElementById('btn-fit').onclick = fitView;
+  document.getElementById('btn-clear').onclick = () => {
+    selectedNodeId = null;
+    document.getElementById('btn-clear').innerHTML = '[ CLEAR SELECTION ]';
+    updateHighlight();
+  };
 
   function fitView() {
     try {
@@ -790,7 +791,7 @@ document.getElementById('file-input').addEventListener('change', e => {
     renderGraph(storyData, sectionMap, sectionList);
   };
   reader.readAsText(file);
-  e.target.value = ''; // allow reloading same file
+  e.target.value = '';
 });
 </script>
 </body>
