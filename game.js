@@ -1,1189 +1,62 @@
 // game.js
 
 // ------------------- Configuration -------------------
-const ENABLE_IMAGES = true;  // Set to true once you have images in /assets/
+const ENABLE_IMAGES = true;  // Set to false if you have no images in /assets/
 
-// ------------------- Global Text Map (from JSON) -------------------
-let textMap = {};
+// Fix #5: centralise all magic numbers — change here, everything updates
+const CONFIG = {
+    STARTING_DAYS:    15,
+    BASE_SPECIAL:     5,
+    CREATION_POINTS:  5,
+    MAX_SPECIAL:      10,
+    HP_PER_ENDURANCE: 2,
+    START_NODE:       "vault_start",
+};
+
+// ------------------- Global Data -------------------
+let storyData = {};           // loaded from story.json
+let textMap   = {};           // loaded from detailed_story.json
 
 // ------------------- Helper: format text with paragraphs and line breaks -------------------
 function formatStoryText(text) {
     if (!text) return "";
-    let paragraphs = text.split(/\n\s*\n/);
-    let formatted = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-    return formatted;
+    const paragraphs = text.split(/\n\s*\n/);
+    return paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
 }
 
 // ------------------- Playlist (add more URLs here) -------------------
 const playlist = [
     "https://archive.org/download/fallout_2_soundtrack/07%20Industrial%20Junk.mp3",
-    "https://archive.org/download/fallout_2_soundtrack/04%20The%20Vault%20of%20the%20Future.mp3"
+    "https://archive.org/download/fallout_2_soundtrack/08%20Underground%20Troubles.mp3",
+    "https://archive.org/download/fallout_2_soundtrack/09%20City%20Of%20The%20Dead.mp3"
 ];
 let currentTrack = 0;
-let audioPlayer = null;
+let audioPlayer  = null;
 
 // ------------------- Initial State -------------------
 let gameState = {
-    currentNodeId: "vault_start",
-    hp: 10,
-    maxHp: 10,
-    daysLeft: 15,
-    flags: {},
+    currentNodeId: CONFIG.START_NODE,
+    hp:       CONFIG.BASE_SPECIAL * CONFIG.HP_PER_ENDURANCE,
+    maxHp:    CONFIG.BASE_SPECIAL * CONFIG.HP_PER_ENDURANCE,
+    daysLeft: CONFIG.STARTING_DAYS,
+    flags:    {},
     special: {
-        strength: 5,
-        perception: 5,
-        endurance: 5,
-        charisma: 5,
-        intelligence: 5,
-        agility: 5,
-        luck: 5
+        strength:     CONFIG.BASE_SPECIAL,
+        perception:   CONFIG.BASE_SPECIAL,
+        endurance:    CONFIG.BASE_SPECIAL,
+        charisma:     CONFIG.BASE_SPECIAL,
+        intelligence: CONFIG.BASE_SPECIAL,
+        agility:      CONFIG.BASE_SPECIAL,
+        luck:         CONFIG.BASE_SPECIAL,
     }
 };
-
-// ------------------- Story Data (with contentKey and imageKey) -------------------
-const storyData = {
-    // I. Vault
-    "vault_start": {
-        id: "vault_start",
-        content: "[vault_start] You wake up in your quarters. A message from the Overseer awaits.",
-        contentKey: "vault_start_text",
-        imageKey: "vault_start",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Go to the Overseer's office", target: "overseer_office" }]
-    },
-    "overseer_office": {
-        id: "overseer_office",
-        content: "[overseer_office] The Overseer gives you the mission. You accept.",
-        contentKey: "overseer_office_text",
-        imageKey: "overseer_office",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Accept the mission", target: "vault_atrium" },
-            { 
-                text: "[Perception ≥ 6] Ask about the sabotage", 
-                target: "vault_atrium", 
-                condition: "perception >= 6",
-                extra_content: "You notice a file on her terminal. She admits the assistant may be involved.",
-                extraContentKey: "overseer_office_choice_1_extra",
-                on_select: { action: "add_clue", clue_id: 1 }
-            }
-        ]
-    },
-    "vault_atrium": {
-        id: "vault_atrium",
-        content: "[vault_atrium] You say goodbye to the dwellers and head to the exit.",
-        contentKey: "vault_atrium_text",
-        imageKey: "vault_atrium",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Leave the vault", target: "vault_exit" }]
-    },
-    "vault_exit": {
-        id: "vault_exit",
-        content: "[vault_exit] The vault door opens. Radiation stings your skin. (HP -1, Endurance ≥ 6 negates)",
-        contentKey: "vault_exit_text",
-        imageKey: "vault_exit",
-        daysCost: 0,
-        hpChange: -1,
-        hpModifiers: [
-            { stat: "endurance", min: 6, reduction: 1 }
-        ],
-		choices: [{ text: "Step into the wasteland", target: "ruined_town_square", on_select: { action: "adjust", days: -1, hp: 0 } }]
-    },
-    // II. Ruined Town hub
-    "ruined_town_square": {
-    id: "ruined_town_square",
-    content: "[ruined_town_square] A ruined town square, buildings gutted by fire.",
-    contentKey: "ruined_town_square_text",
-    imageKey: "ruined_town_square",
-    daysCost: 0,
-    hpChange: 0,
-    choices: [
-        { text: "Search the abandoned shop", target: "abandoned_shop" },
-        { text: "Climb the watchtower", target: "watchtower" },
-        { text: "Investigate the crashed vertibird", target: "crashed_vertibird" },
-        { text: "Climb the radio tower", target: "radio_tower" },
-        { text: "Drink from the well", target: "well" },
-        { text: "Explore the ruined church", target: "church_ruin" }
-    ]
-    },
-    "abandoned_shop": {
-        id: "abandoned_shop",
-        content: "[abandoned_shop] A collapsed general store.",
-        contentKey: "abandoned_shop_text",
-        imageKey: "abandoned_shop",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Search for supplies", 
-                target: "abandoned_shop_after",
-                extraContentKey: "abandoned_shop_search_text",
-                on_select: { action: "adjust", hp: -2, days: 0 }
-            }
-        ]
-    },
-    "abandoned_shop_after": {
-        id: "abandoned_shop_after",
-        content: "",
-        contentKey: "abandoned_shop_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" },
-            { text: "Exit to the road (road_1)", target: "road_1", on_select: { action: "adjust", days: -1, hp: 0 } }
-        ]
-    },
-    "watchtower": {
-        id: "watchtower",
-        content: "[watchtower] A wooden watchtower.",
-        contentKey: "watchtower_text",
-        imageKey: "watchtower",
-        daysCost: 0,
-        hpChange: 0,
-		choices: [
-			{ 
-				text: "Climb the tower", 
-				target: "watchtower_after",
-				extraContentKey: "watchtower_climb_text",
-				on_select: { action: "adjust", hp: -1, days: 0 }
-			},
-			{ 
-				text: "Use perception to find safe steps (Perception ≥ 6)", 
-				target: "watchtower_after",
-				condition: "perception >= 6",
-				extraContentKey: "watchtower_climb_perception_text",
-				on_select: { action: "adjust", hp: 0, days: 0 }
-			}
-		]
-    },
-    "watchtower_after": {
-        id: "watchtower_after",
-        content: "",
-        contentKey: "watchtower_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" },
-            { text: "Exit to NCR checkpoint", target: "ncr_checkpoint", on_select: { action: "adjust", days: -1, hp: 0 } }
-        ]
-    },
-    "crashed_vertibird": {
-        id: "crashed_vertibird",
-        content: "[crashed_vertibird] A downed Vertibird.",
-        contentKey: "crashed_vertibird_text",
-        imageKey: "crashed_vertibird",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Loot the wreckage", 
-                target: "crashed_vertibird_after",
-                extraContentKey: "vertibird_loot_text",
-                on_select: { action: "adjust", hp: 0, days: 0 } // luck effect in extra text only
-            }
-        ]
-    },
-    "crashed_vertibird_after": {
-        id: "crashed_vertibird_after",
-        content: "",
-        contentKey: "crashed_vertibird_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" },
-            { text: "Exit to the road (road_1)", target: "road_1", on_select: { action: "adjust", days: -1, hp: 0 } }
-        ]
-    },
-	"radio_tower": {
-		id: "radio_tower",
-		content: "[radio_tower] A rusted radio tower.",
-		contentKey: "radio_tower_text",
-		imageKey: "radio_tower",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Try to hack the terminal", 
-				target: "radio_tower_after",
-				extraContentKey: "radio_hack_text",
-				on_select: { action: "adjust", hp: -1, days: 0 }
-			},
-			{ 
-				text: "Hack carefully (Intelligence ≥ 6)", 
-				target: "radio_tower_after",
-				condition: "intelligence >= 6",
-				extraContentKey: "radio_hack_intelligent_text",
-				on_select: { action: "adjust", hp: 0, days: 0 }
-			}
-		]
-	},
-    "radio_tower_after": {
-        id: "radio_tower_after",
-        content: "",
-        contentKey: "radio_tower_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" },
-            { text: "Exit to NCR checkpoint", target: "ncr_checkpoint", on_select: { action: "adjust", days: -1, hp: 0 } }
-        ]
-    },
-	"well": {
-		id: "well",
-		content: "[well] An old stone well.",
-		contentKey: "well_text",
-		imageKey: "well",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Drink from the well", 
-				target: "well_after",
-				extraContentKey: "well_drink_text",
-				on_select: { action: "adjust", hp: 1, days: 0 }
-			},
-			{ 
-				text: "Drink carefully (Luck ≥ 6)", 
-				target: "well_after",
-				condition: "luck >= 6",
-				extraContentKey: "well_drink_lucky_text",
-				on_select: { action: "adjust", hp: 2, days: 0 }
-			}
-		]
-	},
-    "well_after": {
-        id: "well_after",
-        content: "",
-        contentKey: "well_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" }
-        ]
-    },
-	"church_ruin": {
-		id: "church_ruin",
-		content: "[church_ruin] A ruined church.",
-		contentKey: "church_ruin_text",
-		imageKey: "church_ruin",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Explore the ruins", 
-				target: "church_ruin_after",
-				extraContentKey: "church_explore_text",
-				on_select: { action: "adjust", hp: -1, days: 0 }
-			},
-			{ 
-				text: "Explore carefully (Perception ≥ 6)", 
-				target: "church_ruin_after",
-				condition: "perception >= 6",
-				extraContentKey: "church_explore_perceptive_text",
-				on_select: { action: "adjust", hp: 0, days: 0 }
-			}
-		]
-	},
-    "church_ruin_after": {
-        id: "church_ruin_after",
-        content: "",
-        contentKey: "church_ruin_after_text",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Return to town square", target: "ruined_town_square" }
-        ]
-    },
-    // III. First road Hub
-    "road_1": {
-        id: "road_1",
-        content: "[road_1] A ruined highway. Several paths lead away.",
-        contentKey: "road_1_text",
-        imageKey: "road_1",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Approach the NCR checkpoint", target: "ncr_checkpoint" },
-            { text: "Investigate the Brotherhood scout", target: "brotherhood_scout" },
-            { text: "Visit the ghoul hermit", target: "ghoul_hermit" },
-            { text: "Take the radscorpion trench", target: "radscorpion_trench" }
-        ]
-    },
-    "ncr_checkpoint": {
-        id: "ncr_checkpoint",
-        content: "[ncr_checkpoint] NCR soldiers ask for help with raiders.",
-        contentKey: "ncr_checkpoint_text",
-        imageKey: "ncr_checkpoint",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Help them", target: "ncr_raid_fight" },
-            { text: "Refuse and move on", target: "wasteland_junction" }
-        ]
-    },
-    "ncr_raid_fight": {
-        id: "ncr_raid_fight",
-        content: "[ncr_raid_fight] NCR soldiers need your help against raiders.",
-        contentKey: "ncr_raid_fight_text",
-        imageKey: "ncr_raid_fight",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight normally", 
-                target: "wasteland_junction",
-                extraContentKey: "ncr_raid_fight_normal_text",
-                on_select: { action: "adjust", hp: -3, days: -1 }
-            },
-            { 
-				text: "Use perception to spot enemy positions (Perception ≥ 6)", 
-				target: "wasteland_junction",
-				condition: "perception >= 6",
-				extraContentKey: "ncr_raid_fight_perception_text",
-				on_select: { action: "adjust", hp: -1, days: -1 }
-            }
-        ]
-    },
-    "brotherhood_scout": {
-        id: "brotherhood_scout",
-        content: "[brotherhood_scout] A Brotherhood scribe needs help with a robot.",
-        contentKey: "brotherhood_scout_text",
-        imageKey: "brotherhood_scout",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Help", target: "brotherhood_patrol_base" },
-            { text: "Ignore", target: "wasteland_junction" }
-        ]
-    },
-	"brotherhood_patrol_base": {
-		id: "brotherhood_patrol_base",
-		content: "[brotherhood_patrol_base] Small Brotherhood camp. They offer a quest.",
-		contentKey: "brotherhood_patrol_base_text",
-		imageKey: "brotherhood_patrol_base",
-		daysCost: 0,  // removed node‑wide cost
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Rest here", 
-				target: "brotherhood_patrol_base",
-				extraContentKey: "brotherhood_patrol_base_rest_text",
-				on_select: { action: "adjust", hp: 2, days: -2 }
-			},
-			{ 
-				text: "Help the scribe with the malfunctioning robot", 
-				target: "brotherhood_robot_fight",
-				extraContentKey: "brotherhood_patrol_base_help_text"
-			},
-			{ 
-				text: "Leave", 
-				target: "wasteland_junction",
-				extraContentKey: "brotherhood_patrol_base_leave_text"
-			}
-		]
-	},
-	"brotherhood_robot_fight": {
-		id: "brotherhood_robot_fight",
-		content: "[brotherhood_robot_fight] The scribe leads you to a decommissioned sentry bot that has gone haywire.",
-		contentKey: "brotherhood_robot_fight_text",
-		imageKey: "brotherhood_robot_fight",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Fight the robot head‑on", 
-				target: "brotherhood_patrol_base",
-				extraContentKey: "brotherhood_robot_fight_normal_text",
-				on_select: { action: "adjust", hp: -6, days: -1, stat_bonus: "intelligence", stat_bonus_value: 1 }
-			},
-			{ 
-				text: "Use your intelligence to disable it (Intelligence ≥ 7)", 
-				target: "brotherhood_patrol_base",
-				condition: "intelligence >= 7",
-				extraContentKey: "brotherhood_robot_fight_intelligent_text",
-				on_select: { action: "adjust", hp: -2, days: -1, stat_bonus: "intelligence", stat_bonus_value: 1 }
-			},
-			{ 
-				text: "Back down and leave", 
-				target: "brotherhood_patrol_base",
-				extraContentKey: "brotherhood_robot_fight_retreat_text"
-			}
-		]
-	},
-    "ghoul_hermit": {
-        id: "ghoul_hermit",
-        content: "[ghoul_hermit] A ghoul hermit wants you to clear a bloatfly nest.",
-        contentKey: "ghoul_hermit_text",
-        imageKey: "ghoul_hermit",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Clear the nest", target: "bloatfly_nest" },
-            { text: "Refuse", target: "wasteland_junction" }
-        ]
-    },
-    "bloatfly_nest": {
-        id: "bloatfly_nest",
-        content: "[bloatfly_nest] You face a bloatfly nest.",
-        contentKey: "bloatfly_nest_text",
-        imageKey: "bloatfly_nest",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight through", 
-                target: "wasteland_junction",
-                extraContentKey: "bloatfly_nest_fight_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
-            },
-            { 
-                text: "Use perception to avoid damage (Perception ≥ 6)", 
-                target: "wasteland_junction",
-                condition: "perception >= 6",
-                extraContentKey: "bloatfly_nest_perception_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            }
-        ]
-    },
-    "radscorpion_trench": {
-        id: "radscorpion_trench",
-        content: "[radscorpion_trench] Radscorpions block the trench.",
-        contentKey: "radscorpion_trench_text",
-        imageKey: "radscorpion_trench",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight through", 
-                target: "wasteland_junction",
-                extraContentKey: "radscorpion_trench_fight_text",
-                on_select: { action: "adjust", hp: -3, days: -1 }
-            },
-            { 
-                text: "Fight with agility (Agility ≥ 6)", 
-                target: "wasteland_junction",
-                condition: "agility >= 6",
-                extraContentKey: "radscorpion_trench_fight_agile_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Fight with strength (Strength ≥ 7)", 
-                target: "wasteland_junction",
-                condition: "strength >= 7",
-                extraContentKey: "radscorpion_trench_fight_strong_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            },
-            { 
-                text: "Take the long way around", 
-                target: "wasteland_junction",
-                extraContentKey: "radscorpion_trench_round_text",
-                on_select: { action: "adjust", hp: 0, days: -3 }
-            }
-        ]
-    },
-    // IV. Wasteland Junction hub
-    "wasteland_junction": {
-        id: "wasteland_junction",
-        content: "[wasteland_junction] A fork in the road. You see a merchant, a shack, a trail, and a faint campfire glow in the distance.",
-        contentKey: "wasteland_junction_text",
-        imageKey: "wasteland_junction",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Visit the traveling merchant", target: "traveling_merchant" },
-            { text: "Search the abandoned shack", target: "abandoned_shack" },
-            { text: "Take the path (ambush)", target: "wasteland_ambush" },
-            { text: "Follow the campfire glow", target: "campfire_rest" },
-            { text: "Move on to the village", target: "crossroads_village" }
-        ]
-    },
-    "traveling_merchant": {
-        id: "traveling_merchant",
-        content: "[traveling_merchant] The merchant tells you about a nearby mercenary camp that welcomes recruits for physical training. 'They'll make you stronger, but it takes time.'",
-        contentKey: "traveling_merchant_text",
-        imageKey: "traveling_merchant",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Ask about the training camp", target: "training_grounds" },
-            { text: "Return to junction", target: "wasteland_junction" }
-        ]
-    },
-    "abandoned_shack": {
-        id: "abandoned_shack",
-        content: "[abandoned_shack] You find pre-war logs and some supplies. As you leave, you take a wrong turn and end up far from the junction.",
-        contentKey: "abandoned_shack_text",
-        imageKey: "abandoned_shack",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Continue forward (no way back)", target: "crossroads_village" }]
-    },
-"wasteland_ambush": {
-    id: "wasteland_ambush",
-    content: "[wasteland_ambush] You are ambushed!",
-    contentKey: "wasteland_ambush_text",
-    imageKey: "wasteland_ambush",
-    daysCost: 0,
-    hpChange: 0,
-    choices: [
-        { 
-            text: "Fight", 
-            target: "wasteland_junction",
-            extraContentKey: "wasteland_ambush_fight_text",
-            on_select: { action: "adjust", hp: -2, days: -1 }
-        },
-        { 
-            text: "Rely on luck (Luck ≥ 7)", 
-            target: "wasteland_junction",
-            condition: "luck >= 7",
-            extraContentKey: "wasteland_ambush_luck_text",
-            on_select: { action: "adjust", hp: -1, days: -1 }
-        },
-        { 
-            text: "Fight with strength (Strength ≥ 8)", 
-            target: "wasteland_junction",
-            condition: "strength >= 8",
-            extraContentKey: "wasteland_ambush_fight_strong_text",
-            on_select: { action: "adjust", hp: -1, days: -1 }
-        }
-    ]
-},
-    "campfire_rest": {
-        id: "campfire_rest",
-        content: "[campfire_rest] A campfire with a lone traveler.",
-        contentKey: "campfire_rest_text",
-        imageKey: "campfire_rest",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Rest here", 
-                target: "campfire_rest",
-                extraContentKey: "campfire_rest_rest_text",
-                on_select: { action: "adjust", hp: 2, days: -2 }
-            },
-            { text: "Thank him and leave", target: "wasteland_junction" }
-        ]
-    },
-    "training_grounds": {
-        id: "training_grounds",
-        content: "[training_grounds] A pre-war gym.",
-        contentKey: "training_grounds_text",
-        imageKey: "training_grounds",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Train (lose 2 days, Strength +1, Endurance +1)", 
-                target: "training_grounds",
-                on_select: { action: "train", stat1: "strength", stat2: "endurance", daysCost: 2 }
-            },
-            { text: "Leave", target: "wasteland_junction" }
-        ]
-    },
-    // V. Second Hub
-    "crossroads_village": {
-        id: "crossroads_village",
-        content: "[crossroads_village] A small settlement. You can rest, trade, or take quests.",
-        contentKey: "crossroads_village_text",
-        imageKey: "crossroads_village",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Visit the village trader", target: "village_trader" },
-            { text: "Talk to NCR contact", target: "ncr_village_contact" },
-            { text: "Talk to Brotherhood contact", target: "brotherhood_village_contact" },
-            { text: "Investigate Enclave rumors", target: "enclave_rumor" },
-            { text: "Explore the deathclaw cave", target: "deathclaw_cave" },
-            { text: "Visit the ghoul doctor", target: "ghoul_doctor" },
-            { text: "Head directly to the Depot", target: "depot_gate" },
-			{ 
-                text: "Rest here", 
-                target: "crossroads_village",
-                extraContentKey: "crossroads_village_rest_text",
-                on_select: { action: "adjust", hp: 2, days: -2 }
-            }
-        ]
-    },
-	"village_trader": {
-		id: "village_trader",
-		content: "[village_trader] You browse goods.",
-		contentKey: "village_trader_text",
-		imageKey: "village_trader",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Buy Buffout (Strength +1, -2 HP)", 
-				target: "crossroads_village",
-				condition: "hasFlag:bought_drug === false",
-				extraContentKey: "village_trader_buffout_text",
-				on_select: { action: "adjust", hp: -2, stat_bonus: "strength", stat_bonus_value: 1, set_flag: "bought_drug" }
-			},
-			{ 
-				text: "Buy Mentats (Perception +1, -2 HP)", 
-				target: "crossroads_village",
-				condition: "hasFlag:bought_drug === false",
-				extraContentKey: "village_trader_mentats_text",
-				on_select: { action: "adjust", hp: -2, stat_bonus: "perception", stat_bonus_value: 1, set_flag: "bought_drug" }
-			},
-			{ 
-				text: "Buy Jet (Agility +1, -2 HP)", 
-				target: "crossroads_village",
-				condition: "hasFlag:bought_drug === false",
-				extraContentKey: "village_trader_jet_text",
-				on_select: { action: "adjust", hp: -2, stat_bonus: "agility", stat_bonus_value: 1, set_flag: "bought_drug" }
-			},
-			{ 
-				text: "Buy Psycho (Endurance +1, -2 HP)", 
-				target: "crossroads_village",
-				condition: "hasFlag:bought_drug === false",
-				extraContentKey: "village_trader_psycho_text",
-				on_select: { action: "adjust", hp: -2, stat_bonus: "endurance", stat_bonus_value: 1, set_flag: "bought_drug" }
-			},
-			{ 
-				text: "Buy RadAway (remove radiation?) – not implemented", 
-				target: "crossroads_village",
-				condition: "hasFlag:bought_drug === false",
-				extraContentKey: "village_trader_placeholder_text",
-				on_select: { action: "adjust", hp: -2, set_flag: "bought_drug" }
-			},
-			{ text: "Just browse", target: "crossroads_village" }
-		]
-	},
-    "ncr_village_contact": {
-        id: "ncr_village_contact",
-        content: "[ncr_village_contact] An NCR agent asks you to deliver a message.",
-        contentKey: "ncr_village_contact_text",
-        imageKey: "ncr_village_contact",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Accept", target: "ncr_outpost_depot" },
-            { text: "Decline", target: "crossroads_village" }
-        ]
-    },
-    "ncr_outpost_depot": {
-        id: "ncr_outpost_depot",
-        content: "[ncr_outpost_depot] NCR outpost near the Depot.",
-        contentKey: "ncr_outpost_depot_text",
-        imageKey: "ncr_outpost_depot",
-        daysCost: 1,
-        hpChange: 0,
-        choices: [
-            { text: "Accept supply quest", target: "raider_camp" },
-            { text: "Go to Depot directly", target: "depot_gate" }
-        ]
-    },
-    "raider_camp": {
-        id: "raider_camp",
-        content: "[raider_camp] A raider camp.",
-        contentKey: "raider_camp_text",
-        imageKey: "raider_camp",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Assault the camp", 
-                target: "depot_gate",
-                extraContentKey: "raider_camp_assault_text",
-                on_select: { action: "adjust", hp: -4, days: -1 }
-            },
-            { 
-                text: "Assault with strength (Strength ≥ 7)", 
-                target: "depot_gate",
-                condition: "strength >= 7",
-                extraContentKey: "raider_camp_assault_strong_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
-            },
-            { 
-				text: "Use intelligence to sabotage supplies (Intelligence ≥ 6)", 
-				target: "depot_gate",
-				condition: "intelligence >= 6",
-				extraContentKey: "raider_camp_intelligence_text",
-				on_select: { action: "adjust", hp: -2, days: -1 }
-            }
-        ]
-    },
-    "brotherhood_village_contact": {
-        id: "brotherhood_village_contact",
-        content: "[brotherhood_village_contact] A Brotherhood initiate wants tech from a Yao Guai cave.",
-        contentKey: "brotherhood_village_contact_text",
-        imageKey: "brotherhood_village_contact",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Accept", target: "yaoguai_cave_tech" },
-            { text: "Decline", target: "crossroads_village" }
-        ]
-    },
-    "yaoguai_cave_tech": {
-        id: "yaoguai_cave_tech",
-        content: "[yaoguai_cave_tech] A Yao Guai cave.",
-        contentKey: "yaoguai_cave_tech_text",
-        imageKey: "yaoguai_cave_tech",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight the Yao Guai", 
-                target: "depot_gate",
-                extraContentKey: "yaoguai_cave_tech_fight_text",
-                on_select: { action: "adjust", hp: -3, days: -1 }
-            },
-            { 
-                text: "Fight with strength (Strength ≥ 7)", 
-                target: "depot_gate",
-                condition: "strength >= 7",
-                extraContentKey: "yaoguai_cave_tech_fight_strong_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Set a trap (Agility ≥ 6)", 
-                target: "depot_gate",
-                condition: "agility >= 6",
-                extraContentKey: "yaoguai_cave_tech_trap_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Abandon the quest", 
-                target: "crossroads_village",
-                extraContentKey: "yaoguai_cave_tech_abandon_text"
-            }
-        ]
-    },
-    "enclave_rumor": {
-        id: "enclave_rumor",
-        content: "[enclave_rumor] You hear rumors of Enclave activity.",
-        contentKey: "enclave_rumor_text",
-        imageKey: "enclave_rumor",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Investigate", target: "enclave_scout_patrol" },
-            { text: "Ignore", target: "crossroads_village" }
-        ]
-    },
-    "enclave_scout_patrol": {
-        id: "enclave_scout_patrol",
-        content: "[enclave_scout_patrol] Enclave patrol.",
-        contentKey: "enclave_scout_patrol_text",
-        imageKey: "enclave_scout_patrol",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight", 
-                target: "depot_gate",
-                extraContentKey: "enclave_scout_patrol_fight_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
-            },
-            { 
-                text: "Escape (Agility ≥ 7)", 
-                target: "depot_gate",
-                condition: "agility >= 7",
-                extraContentKey: "enclave_scout_patrol_escape_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            },
-            { 
-                text: "Bluff (Charisma ≥ 8)", 
-                target: "depot_gate",
-                condition: "charisma >= 8",
-                extraContentKey: "enclave_scout_patrol_bluff_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            },
-            { 
-                text: "Get captured", 
-                target: "enclave_bunker",
-                extraContentKey: "enclave_scout_patrol_capture_text",
-                on_select: { action: "adjust", hp: 0, days: 0 }  // capture will add days in bunker
-            }
-        ]
-    },
-    "enclave_bunker": {
-        id: "enclave_bunker",
-        content: "[enclave_bunker] Enclave bunker.",
-        contentKey: "enclave_bunker_text",
-        imageKey: "enclave_bunker",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Escape with data (Intelligence ≥ 7)", 
-                target: "depot_gate",
-                condition: "intelligence >= 7",
-                extraContentKey: "enclave_bunker_escape_data_text",
-                on_select: { action: "adjust", hp: -1, days: -1, clue: 2 }
-            },
-            { 
-                text: "Escape without data", 
-                target: "depot_gate",
-                extraContentKey: "enclave_bunker_escape_no_data_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            }
-        ]
-    },
-     "deathclaw_cave": {
-        id: "deathclaw_cave",
-        content: "[deathclaw_cave] A deathclaw blocks the shortcut.",
-        contentKey: "deathclaw_cave_text",
-        imageKey: "deathclaw_cave",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight the deathclaw", 
-                target: "depot_gate",
-                extraContentKey: "deathclaw_cave_fight_text",
-                on_select: { action: "adjust", hp: -5, days: -1 }
-            },
-            { 
-                text: "Sneak past (Perception ≥ 7), takes 2 days", 
-                target: "depot_gate",
-                condition: "perception >= 7",
-                extraContentKey: "deathclaw_cave_sneak_perception_text",
-                on_select: { action: "adjust", hp: 0, days: -2 }
-            },
-            { 
-                text: "Sneak past (Agility ≥ 8), takes 2 days", 
-                target: "depot_gate",
-                condition: "agility >= 8",
-                extraContentKey: "deathclaw_cave_sneak_agility_text",
-                on_select: { action: "adjust", hp: 0, days: -2 }
-            },
-            { 
-                text: "Turn back", 
-                target: "crossroads_village",
-                extraContentKey: "deathclaw_cave_turnback_text"
-            }
-        ]
-    },
-    "ghoul_doctor": {
-        id: "ghoul_doctor",
-        content: "[ghoul_doctor] A ghoul doctor needs a mirelurk gland.",
-        contentKey: "ghoul_doctor_text",
-        imageKey: "ghoul_doctor",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Help", target: "mirelurk_lake" },
-            { text: "Refuse", target: "crossroads_village" }
-        ]
-    },
-    "mirelurk_lake": {
-        id: "mirelurk_lake",
-        content: "[mirelurk_lake] A lake with a mirelurk.",
-        contentKey: "mirelurk_lake_text",
-        imageKey: "mirelurk_lake",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight the mirelurk", 
-                target: "crossroads_village",
-                extraContentKey: "mirelurk_lake_fight_text",
-                on_select: { action: "adjust", hp: -3, days: -1 }
-            },
-            { 
-                text: "Fight with strength (Strength ≥ 7)", 
-                target: "crossroads_village",
-                condition: "strength >= 7",
-                extraContentKey: "mirelurk_lake_fight_strong_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Retrieve gland without fighting (Perception ≥ 6)", 
-                target: "crossroads_village",
-                condition: "perception >= 6",
-                extraContentKey: "mirelurk_lake_sneak_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Give up", 
-                target: "crossroads_village",
-                extraContentKey: "mirelurk_lake_giveup_text"
-            }
-        ]
-    },
-    // VI. Depot
-    "depot_gate": {
-        id: "depot_gate",
-        content: "[depot_gate] The entrance to the military depot.",
-        contentKey: "depot_gate_text",
-        imageKey: "depot_gate",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Main entrance", target: "depot_robots" },
-            { 
-                text: "Side entrance (Strength ≥ 7 or Perception ≥ 6)", 
-                target: "depot_armory",
-                condition: "strength >= 7 or perception >= 6"
-            }
-        ]
-    },
-    "depot_robots": {
-        id: "depot_robots",
-        content: "[depot_robots] Security robots attack.",
-        contentKey: "depot_robots_text",
-        imageKey: "depot_robots",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight robots", 
-                target: "depot_lab",
-                extraContentKey: "depot_robots_fight_text",
-                on_select: { action: "adjust", hp: -3, days: -1 }
-            },
-            { 
-				text: "Use perception to find a safe path (Perception ≥ 6)", 
-				target: "depot_lab",
-				condition: "perception >= 6",
-				extraContentKey: "depot_robots_perception_text",
-				on_select: { action: "adjust", hp: -1, days: -1 }
-            },
-            { 
-                text: "Reprogram (Intelligence ≥ 8)", 
-                target: "depot_lab",
-                condition: "intelligence >= 8",
-                extraContentKey: "depot_robots_reprogram_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            }
-        ]
-    },
-    "depot_armory": {
-        id: "depot_armory",
-        content: "[depot_armory] You find weapons and then proceed to the lab.",
-        contentKey: "depot_armory_text",
-        imageKey: "depot_armory",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Continue to lab", target: "depot_lab" }]
-    },
-    "depot_lab": {
-        id: "depot_lab",
-        content: "[depot_lab] Pre-war lab. You find a holotape with evidence of the saboteur. (HP -2 gas, Perception ≥ 7 or Endurance ≥ 7 reduces to 0)",
-        contentKey: "depot_lab_text",
-        imageKey: "depot_lab",
-        daysCost: 1,
-        hpChange: -2,
-        hpModifiers: [
-            { stat: "perception", min: 7, reduction: 2 },
-            { stat: "endurance", min: 7, reduction: 2 }
-        ],
-        choices: [
-            { 
-                text: "Take the holotape and go to reactor", 
-                target: "depot_reactor",
-                extraContentKey: "depot_lab_holotape_text",
-                on_select: { action: "add_clue", clue_id: 3 }
-            },
-            { 
-                text: "Leave the holotape and go to reactor", 
-                target: "depot_reactor",
-                extraContentKey: "depot_lab_leave_text"
-            }
-        ]
-    },
-    "depot_reactor": {
-        id: "depot_reactor",
-        content: "[depot_reactor] Gecko nest guarding the regulator.",
-        contentKey: "depot_reactor_text",
-        imageKey: "depot_reactor",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Fight geckos", 
-                target: "depot_escape",
-                extraContentKey: "depot_reactor_fight_text",
-                on_select: { action: "adjust", hp: -4, days: -1 }
-            },
-            { 
-                text: "Fight with strength (Strength ≥ 7)", 
-                target: "depot_escape",
-                condition: "strength >= 7",
-                extraContentKey: "depot_reactor_strong_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
-            },
-            { 
-                text: "Lure them away (Agility ≥ 6)", 
-                target: "depot_escape",
-                condition: "agility >= 6",
-                extraContentKey: "depot_reactor_agile_text",
-                on_select: { action: "adjust", hp: -1, days: -1 }
-            }
-        ]
-    },
-    "depot_escape": {
-        id: "depot_escape",
-        content: "[depot_escape] Enclave arrive!",
-        contentKey: "depot_escape_text",
-        imageKey: "depot_escape",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Escape", 
-                target: "return_road",
-                extraContentKey: "depot_escape_escape_text",
-                on_select: { action: "adjust", hp: -2, days: -1 }
-            },
-            { 
-                text: "Escape with charisma (Charisma ≥ 7)", 
-                target: "return_road",
-                condition: "charisma >= 7",
-                extraContentKey: "depot_escape_charisma_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            },
-            { 
-                text: "Escape with agility (Agility ≥ 7)", 
-                target: "return_road",
-                condition: "agility >= 7",
-                extraContentKey: "depot_escape_agile_text",
-                on_select: { action: "adjust", hp: 0, days: -1 }
-            },
-            { 
-                text: "Confront (requires Enclave data)", 
-                target: "depot_climax_alt",
-                condition: "hasFlag:clue_2",
-                extraContentKey: "depot_escape_confront_text"
-            }
-        ]
-    },
-    "depot_climax_alt": {
-        id: "depot_climax_alt",
-        content: "[depot_climax_alt] You use the Enclave data to negotiate your escape. The Enclave agents are impressed and let you go peacefully. You suffer no additional harm, and you gain valuable information about their operations.",
-        contentKey: "depot_climax_alt_text",
-        imageKey: "depot_climax_alt",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { 
-                text: "Leave", 
-                target: "return_road",
-                on_select: { action: "set_flag", flag: "confronted_enclave", value: true }
-            } 
-        ]
-    },
-    // VII. Return & Resolution
-    "return_road": {
-        id: "return_road",
-        content: "[return_road] You travel back to Vault 42. (1 day passes)",
-        contentKey: "return_road_text",
-        imageKey: "return_road",
-        daysCost: 1,
-        hpChange: 0,
-        choices: [{ text: "Enter the vault", target: "vault_reentry" }]
-    },
-    "vault_reentry": {
-        id: "vault_reentry",
-        content: "[vault_reentry] You re-enter the vault. The saboteur must be identified.",
-        contentKey: "vault_reentry_text",
-        imageKey: "vault_reentry",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Proceed to trial", target: "trial_start" }]
-    },
-	"trial_start": {
-		id: "trial_start",
-		content: "You stand before the vault council. The saboteur must be identified.",
-		contentKey: "trial_start_text",
-		imageKey: "trial_start",
-		daysCost: 0,
-		hpChange: 0,
-		choices: [
-			{ 
-				text: "Present the evidence", 
-				target: "determine_culprit",
-				condition: "hasFlag:has_any_clue",
-				extraContentKey: "trial_start_evidence_text"
-			},
-			{ 
-				text: "Admit you have no proof", 
-				target: "determine_culprit",
-				extraContentKey: "trial_start_no_evidence_text"
-			}
-		]
-	},
-    "determine_culprit": {
-        id: "determine_culprit",
-        content: "",
-        daysCost: 0,
-        hpChange: 0,
-        isLogicNode: true,
-        choices: []
-    },
-    "sentencing": {
-        id: "sentencing",
-        content: "The saboteur stands before you. What is your judgment?",
-        contentKey: "sentencing_text",
-        imageKey: "sentencing",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [
-            { text: "Show mercy (imprisonment)", target: "epilogue", on_select: { action: "set_sentence", sentence: "mercy" } },
-            { text: "Exile to the wasteland", target: "epilogue", on_select: { action: "set_sentence", sentence: "exile" } },
-            { text: "Execute", target: "epilogue", on_select: { action: "set_sentence", sentence: "execution" } }
-        ]
-    },
-    "epilogue": {
-        id: "epilogue",
-        content: "",
-        daysCost: 0,
-        hpChange: 0,
-        isDynamic: true,
-        choices: []
-    },
-    // Game Over nodes
-    "game_over_death": {
-        id: "game_over_death",
-        content: "💀 You have died. The wasteland claims another soul. Game over. 💀",
-        contentKey: "game_over_death_text",
-        imageKey: "game_over_death",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Restart", target: "RESTART" }]
-    },
-    "game_over_time": {
-        id: "game_over_time",
-        content: "⏰ Time runs out. Vault 42 falls silent. Everyone asphyxiates. Game over. ⏰",
-        contentKey: "game_over_time_text",
-        imageKey: "game_over_time",
-        daysCost: 0,
-        hpChange: 0,
-        choices: [{ text: "Restart", target: "RESTART" }]
-    }
-};
-
-// ------------------- Playlist Functions -------------------
-function initPlaylist() {
-    audioPlayer = document.getElementById("bg-music");
-    if (!audioPlayer || playlist.length === 0) return;
-    audioPlayer.src = playlist[0];
-    audioPlayer.addEventListener("ended", function() {
-        currentTrack = (currentTrack + 1) % playlist.length;
-        audioPlayer.src = playlist[currentTrack];
-        audioPlayer.play().catch(e => console.log("Playback error", e));
-    });
-}
-
-function startMusic() {
-    if (audioPlayer && audioPlayer.paused) {
-        audioPlayer.play().catch(e => console.log("Autoplay blocked", e));
-    }
-}
 
 // ------------------- Helper Functions -------------------
 function updateStatsDisplay() {
-    document.getElementById("hp-value").innerText = gameState.hp;
+    document.getElementById("hp-value").innerText     = gameState.hp;
     document.getElementById("max-hp-value").innerText = gameState.maxHp;
-    document.getElementById("days-value").innerText = gameState.daysLeft;
-    document.getElementById("clues-value").innerText = gameState.flags.cluesFound || 0;
+    document.getElementById("days-value").innerText   = gameState.daysLeft;
+    document.getElementById("clues-value").innerText  = gameState.flags.cluesFound || 0;
     document.getElementById("str").innerText = gameState.special.strength;
     document.getElementById("per").innerText = gameState.special.perception;
     document.getElementById("end").innerText = gameState.special.endurance;
@@ -1196,11 +69,11 @@ function updateStatsDisplay() {
 function saveGame() {
     const saveData = {
         currentNodeId: gameState.currentNodeId,
-        hp: gameState.hp,
-        maxHp: gameState.maxHp,
+        hp:       gameState.hp,
+        maxHp:    gameState.maxHp,
         daysLeft: gameState.daysLeft,
-        flags: gameState.flags,
-        special: { ...gameState.special }
+        flags:    gameState.flags,
+        special:  { ...gameState.special }
     };
     localStorage.setItem("vault5_save", JSON.stringify(saveData));
 }
@@ -1211,15 +84,24 @@ function loadGame() {
     try {
         const data = JSON.parse(saved);
         gameState.currentNodeId = data.currentNodeId;
-        gameState.hp = data.hp;
-        gameState.maxHp = data.maxHp;
+        gameState.hp       = data.hp;
+        gameState.maxHp    = data.maxHp;
         gameState.daysLeft = data.daysLeft;
-        gameState.flags = data.flags || {};
-        gameState.special = data.special;
+        gameState.flags    = data.flags || {};
+        // Fix #8 (bonus): guard against saves from older versions missing a key
+        gameState.special = Object.assign(
+            {
+                strength: CONFIG.BASE_SPECIAL, perception:   CONFIG.BASE_SPECIAL,
+                endurance: CONFIG.BASE_SPECIAL, charisma:    CONFIG.BASE_SPECIAL,
+                intelligence: CONFIG.BASE_SPECIAL, agility:  CONFIG.BASE_SPECIAL,
+                luck: CONFIG.BASE_SPECIAL,
+            },
+            data.special
+        );
         updateStatsDisplay();
         return true;
     } catch(e) {
-        console.error("Failed to load save", e);
+        console.error("Failed to load save:", e);
         return false;
     }
 }
@@ -1230,39 +112,49 @@ function clearSave() {
 
 function resetGame() {
     clearSave();
+    // Fix #5: all constants come from CONFIG
     gameState.special = {
-        strength: 5,
-        perception: 5,
-        endurance: 5,
-        charisma: 5,
-        intelligence: 5,
-        agility: 5,
-        luck: 5
+        strength:     CONFIG.BASE_SPECIAL,
+        perception:   CONFIG.BASE_SPECIAL,
+        endurance:    CONFIG.BASE_SPECIAL,
+        charisma:     CONFIG.BASE_SPECIAL,
+        intelligence: CONFIG.BASE_SPECIAL,
+        agility:      CONFIG.BASE_SPECIAL,
+        luck:         CONFIG.BASE_SPECIAL,
     };
-    gameState.maxHp = 2 * gameState.special.endurance;
-    gameState.hp = gameState.maxHp;
-    gameState.daysLeft = 15;
-    gameState.flags = {};
-    gameState.currentNodeId = "vault_start";
+    gameState.maxHp    = CONFIG.HP_PER_ENDURANCE * gameState.special.endurance;
+    gameState.hp       = gameState.maxHp;
+    gameState.daysLeft = CONFIG.STARTING_DAYS;
+    gameState.flags    = {};
+    gameState.currentNodeId = CONFIG.START_NODE;
     updateStatsDisplay();
     showCreationScreen();
 }
 
+// Fix #6: single shared helper — both "add_clue" and "adjust" actions call this
+function addClue(clueId) {
+    gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
+    gameState.flags[`clue_${clueId}`] = true;
+    if (gameState.flags.cluesFound === 1) {
+        gameState.flags.has_any_clue = true;
+    }
+}
+
+// Fix #1: HP cap guard only applies when base delta is negative (damage).
+//         Healing nodes that also carry hpModifiers are no longer zeroed out.
+//         Bonus: three-line clamp replaced by one Math.min/max call.
 function applyNodeEffects(node) {
-    let hpLoss = node.hpChange || 0;
-    if (node.hpModifiers && Array.isArray(node.hpModifiers)) {
-        for (let mod of node.hpModifiers) {
-            const statValue = gameState.special[mod.stat];
-            if (statValue >= mod.min) {
-                hpLoss += mod.reduction;
+    let hpDelta = node.hpChange || 0;
+    if (hpDelta < 0 && node.hpModifiers && Array.isArray(node.hpModifiers)) {
+        for (const mod of node.hpModifiers) {
+            if (gameState.special[mod.stat] >= mod.min) {
+                hpDelta += mod.reduction;
             }
         }
-        if (hpLoss > 0) hpLoss = 0;
+        if (hpDelta > 0) hpDelta = 0;  // mitigation can neutralise damage, never flip to healing
     }
-    gameState.hp += hpLoss;
+    gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + hpDelta));
     if (node.daysCost) gameState.daysLeft -= node.daysCost;
-    if (gameState.hp > gameState.maxHp) gameState.hp = gameState.maxHp;
-    if (gameState.hp < 0) gameState.hp = 0;
     updateStatsDisplay();
     saveGame();
 }
@@ -1279,13 +171,17 @@ function checkAndHandleGameOver() {
     return false;
 }
 
+// Fix #3: built-in fallback text when game-over node is missing from story.json
 function displayGameOverNode(nodeId) {
     const node = storyData[nodeId];
-    if (!node) return;
-    let displayText = node.content;
-    if (node.contentKey && textMap[node.contentKey]) {
-        displayText = textMap[node.contentKey];
-    }
+    const fallbackText = nodeId === "game_over_death"
+        ? "You have died. The wasteland claims another soul."
+        : "Time has run out. The vault could not be saved.";
+
+    const displayText = node
+        ? (node.contentKey && textMap[node.contentKey] ? textMap[node.contentKey] : node.content)
+        : fallbackText;
+
     document.getElementById("story-content").innerHTML = formatStoryText(displayText);
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
@@ -1301,64 +197,98 @@ function displayGameOverNode(nodeId) {
 function generateEpilogue() {
     let text = "The reactor hums back to life. Vault 5 is saved.\n\n";
     const culpritIdentified = gameState.flags.culpritIdentified || false;
-    const culpritCorrect = gameState.flags.culpritCorrect || false;
-    const sentence = gameState.flags.sentence;
+    const culpritCorrect    = gameState.flags.culpritCorrect    || false;
+    const sentence          = gameState.flags.sentence;
 
     if (!culpritIdentified) {
-        text += "But the saboteur remains at large, hidden among the dwellers. Trust is broken, and paranoia festers in the corridors like a disease nobody wants to name. The Overseer thanks you with a hollow smile – she knows, as you do, that the real threat still watches from the shadows. Meals are eaten in silence. Neighbors eye each other over the hydroponic soy. The water chip works again, but nobody trusts the water.\n\n";
-        text += "You lie awake at night, staring at the riveted ceiling, wondering which face hides the knife. Marcus is still there, still smiling that too‑wide smile. You have no proof, only instinct. And instinct, in Vault‑Tec's world, is worth less than the lint in your pocket.\n\n";
-        text += "The vault survives. But survival isn't the same as living. You saved them from the reactor, but you couldn't save them from themselves. Some victories taste like ash.\n\n";
-    } 
-    else if (culpritCorrect) {
-        text += "You have unmasked the true traitor: Marcus, the Overseer's assistant. The evidence is undeniable – a holotape, a terminal log, a confession that spills out like rancid oil. The dwellers gasp. Security cuffs him. His smile finally cracks, revealing the rot beneath.\n\n";
-        text += "'Vault‑Tec promised me a place in a control vault,' he snarls. 'They said I'd be safe. I was just following orders.' The words hang in the recycled air, heavy and pathetic. Following orders. The oldest excuse for the worst crimes.\n\n";
-        
+        text += "But the saboteur remains at large, hidden among the dwellers. Trust is broken, and paranoia festers in the corridors like a disease nobody wants to name. The Overseer thanks you with a hollow smile \u2013 she knows, as you do, that the real threat still watches from the shadows. Meals are eaten in silence. Neighbors eye each other over the hydroponic soy. The water chip works again, but nobody trusts the water.\n\n";
+        text += "You lie awake at night, staring at the riveted ceiling, wondering which face hides the knife. Marcus is still there, still smiling that too\u2011wide smile. You have no proof, only instinct. And instinct, in Vault\u2011Tec\u2019s world, is worth less than the lint in your pocket.\n\n";
+        text += "The vault survives. But survival isn\u2019t the same as living. You saved them from the reactor, but you couldn\u2019t save them from themselves. Some victories taste like ash.\n\n";
+    } else if (culpritCorrect) {
+        text += "You have unmasked the true traitor: Marcus, the Overseer\u2019s assistant. The evidence is undeniable \u2013 a holotape, a terminal log, a confession that spills out like rancid oil. The dwellers gasp. Security cuffs him. His smile finally cracks, revealing the rot beneath.\n\n";
+        text += "\u2018Vault\u2011Tec promised me a place in a control vault,\u2019 he snarls. \u2018They said I\u2019d be safe. I was just following orders.\u2019 The words hang in the recycled air, heavy and pathetic. Following orders. The oldest excuse for the worst crimes.\n\n";
+
         if (sentence === "mercy") {
-            text += "You show mercy. Marcus is imprisoned in the vault's brig – a converted storage closet with a cot and a bucket. He'll spend his days scrubbing pipes and repairing filtration units. Some call you weak. They whisper that you should have put a bullet in his head. But others see wisdom in redemption – or maybe they're just tired of blood.\n\n";
-            text += "Marcus works in silence. He doesn't thank you. He doesn't curse you. He just exists, a ghost in a jumpsuit. The vault breathes easier, but the scar remains. You pass him in the corridor sometimes. He looks away. So do you.\n\n";
-        } 
-        else if (sentence === "exile") {
+            text += "You show mercy. Marcus is imprisoned in the vault\u2019s brig \u2013 a converted storage closet with a cot and a bucket. He\u2019ll spend his days scrubbing pipes and repairing filtration units. Some call you weak. They whisper that you should have put a bullet in his head. But others see wisdom in redemption \u2013 or maybe they\u2019re just tired of blood.\n\n";
+            text += "Marcus works in silence. He doesn\u2019t thank you. He doesn\u2019t curse you. He just exists, a ghost in a jumpsuit. The vault breathes easier, but the scar remains. You pass him in the corridor sometimes. He looks away. So do you.\n\n";
+        } else if (sentence === "exile") {
             text += "You cast Marcus into the wasteland without a weapon, without a canteen, without hope. The vault door seals behind him. His last look is not anger, but something worse: resignation. He knew this was coming. He always knew.\n\n";
-            text += "The dwellers cheer. Justice, they call it. But you can't shake the image of him walking into the dust, alone, under a sky the color of a healing bruise. He won't survive the night. The radscorpions will see to that.\n\n";
+            text += "The dwellers cheer. Justice, they call it. But you can\u2019t shake the image of him walking into the dust, alone, under a sky the color of a healing bruise. He won\u2019t survive the night. The radscorpions will see to that.\n\n";
             text += "The vault is safe. But safety built on exile feels like a bandage on a wound that needs stitches. You tell yourself he deserved it. Most nights, you almost believe it.\n\n";
-        } 
-        else if (sentence === "execution") {
-            text += "Marcus is executed by firing squad in the atrium. The plastic tree watches, its leaves dusted for the occasion. The shots echo off the metal walls – three sharp cracks, then silence. His body crumples, a red stain spreading on the concrete.\n\n";
-            text += "His last words are a curse – not on you, but on Vault‑Tec, on the world, on the whole rotten system that made him a pawn. The dwellers turn away, suddenly ashamed. Nobody cheers. Nobody cries. They just… leave.\n\n";
-            text += "You stand alone with the body, the regulator still warm in your hands. Order is restored. Fear is replaced by something colder. The vault is safe. But you wonder, sometimes, if you executed the wrong person after all. Not Marcus – yourself.\n\n";
+        } else if (sentence === "execution") {
+            text += "Marcus is executed by firing squad in the atrium. The plastic tree watches, its leaves dusted for the occasion. The shots echo off the metal walls \u2013 three sharp cracks, then silence. His body crumples, a red stain spreading on the concrete.\n\n";
+            text += "His last words are a curse \u2013 not on you, but on Vault\u2011Tec, on the world, on the whole rotten system that made him a pawn. The dwellers turn away, suddenly ashamed. Nobody cheers. Nobody cries. They just\u2026 leave.\n\n";
+            text += "You stand alone with the body, the regulator still warm in your hands. Order is restored. Fear is replaced by something colder. The vault is safe. But you wonder, sometimes, if you executed the wrong person after all. Not Marcus \u2013 yourself.\n\n";
         }
-    } 
-    else {
-        text += "You accuse an innocent dweller based on flimsy evidence – a hunch, a whisper, a desperate need to blame someone. The council listens. The dwellers shout for blood. And you give it to them.\n\n";
-        text += "The real saboteur remains hidden, maybe laughing, maybe watching from the shadows. The vault's unity crumbles like old concrete. Your reputation – once a hero's – shatters into a thousand pieces. People avoid you in the corridors. They whisper behind your back. 'Wrong man,' they say. 'Finger pointed the wrong way.'\n\n";
-        
+    } else {
+        text += "You accuse an innocent dweller based on flimsy evidence \u2013 a hunch, a whisper, a desperate need to blame someone. The council listens. The dwellers shout for blood. And you give it to them.\n\n";
+        text += "The real saboteur remains hidden, maybe laughing, maybe watching from the shadows. The vault\u2019s unity crumbles like old concrete. Your reputation \u2013 once a hero\u2019s \u2013 shatters into a thousand pieces. People avoid you in the corridors. They whisper behind your back. \u2018Wrong man,\u2019 they say. \u2018Finger pointed the wrong way.\u2019\n\n";
+
         if (sentence === "mercy") {
-            text += "You show mercy to the innocent. He is imprisoned – not in the brig, but in a corner of the hydroponics bay, under guard. He doesn't speak. He doesn't eat. He just sits, staring at the plastic tree, his eyes empty.\n\n";
-            text += "The whispers follow you forever. 'She let him live,' they say, 'but she killed his soul.' You visit him once. He looks through you like you're made of glass. You never go back.\n\n";
-            text += "The vault endures, but it's a hollow shell. Trust is a currency nobody spends. And you, the hero of Vault 5, are its most indebted citizen.\n\n";
-        } 
-        else if (sentence === "exile") {
-            text += "You cast an innocent family into the wasteland – a father, a mother, a child no older than five. The vault door seals behind them. The mother's eyes haunt you. The child's silence is louder than any scream.\n\n";
-            text += "You will never forget their faces. They stare at you in your dreams, asking why. You have no answer. Only the hollow echo of your own voice, shouting 'traitor' at the wrong target.\n\n";
-            text += "The wasteland outside is harsh. They won't last a week. And when they're gone, you'll still be here, living with the weight of their exile. Justice? No. Just tragedy wearing a hero's badge.\n\n";
-        } 
-        else if (sentence === "execution") {
-            text += "Blood stains the atrium floor. You executed the wrong person. The innocent's last words were not a curse, but a question: 'Why?' You have no answer. The bullet left your gun, but the guilt never leaves you.\n\n";
+            text += "You show mercy to the innocent. He is imprisoned \u2013 not in the brig, but in a corner of the hydroponics bay, under guard. He doesn\u2019t speak. He doesn\u2019t eat. He just sits, staring at the plastic tree, his eyes empty.\n\n";
+            text += "The whispers follow you forever. \u2018She let him live,\u2019 they say, \u2018but she killed his soul.\u2019 You visit him once. He looks through you like you\u2019re made of glass. You never go back.\n\n";
+            text += "The vault endures, but it\u2019s a hollow shell. Trust is a currency nobody spends. And you, the hero of Vault 5, are its most indebted citizen.\n\n";
+        } else if (sentence === "exile") {
+            text += "You cast an innocent family into the wasteland \u2013 a father, a mother, a child no older than five. The vault door seals behind them. The mother\u2019s eyes haunt you. The child\u2019s silence is louder than any scream.\n\n";
+            text += "You will never forget their faces. They stare at you in your dreams, asking why. You have no answer. Only the hollow echo of your own voice, shouting \u2018traitor\u2019 at the wrong target.\n\n";
+            text += "The wasteland outside is harsh. They won\u2019t last a week. And when they\u2019re gone, you\u2019ll still be here, living with the weight of their exile. Justice? No. Just tragedy wearing a hero\u2019s badge.\n\n";
+        } else if (sentence === "execution") {
+            text += "Blood stains the atrium floor. You executed the wrong person. The innocent\u2019s last words were not a curse, but a question: \u2018Why?\u2019 You have no answer. The bullet left your gun, but the guilt never leaves you.\n\n";
             text += "The dwellers turn away. The Overseer avoids your gaze. Even the security guards shuffle their feet, uncomfortable. You wanted justice. You got murder.\n\n";
-            text += "The vault is safe – the reactor hums, the water flows – but the safety is built on a lie. You go to sleep each night and wake each morning to the same thought: an innocent person died because you were too eager, too angry, too blind.\n\n";
-            text += "Some heroes get statues. You get a stain that won't wash out.\n\n";
+            text += "The vault is safe \u2013 the reactor hums, the water flows \u2013 but the safety is built on a lie. You go to sleep each night and wake each morning to the same thought: an innocent person died because you were too eager, too angry, too blind.\n\n";
+            text += "Some heroes get statues. You get a stain that won\u2019t wash out.\n\n";
         }
     }
 
-    text += "The wasteland outside remains harsh – the sun still burns, the radscorpions still skitter, the Enclave still schemes. But for now, Vault 5 endures. The lights stay on. The children grow up. The old die slow.\n\n";
+    text += "The wasteland outside remains harsh \u2013 the sun still burns, the radscorpions still skitter, the Enclave still schemes. But for now, Vault 5 endures. The lights stay on. The children grow up. The old die slow.\n\n";
     text += "Your adventure is over. But the wasteland never stops. And somewhere, out there, a regulator waits for the next vault to fail.\n\n";
     text += "Thank you for playing.\n\n";
-    text += "— Vault 5 —";
-    
+    text += "\u2014 Vault 5 \u2014";
+
     return text;
 }
 
+// ------------------- Music -------------------
+// Fix #9: updateMusicButtonState uses the audioPlayer variable consistently
+function toggleMusic() {
+    if (!audioPlayer) return;
+    if (audioPlayer.paused) {
+        audioPlayer.play().catch(e => console.error("Playback error:", e));
+    } else {
+        audioPlayer.pause();
+    }
+    // Button label is updated by the "play"/"pause" event listeners set in initPlaylist
+}
+
+function updateMusicButtonState() {
+    const btn = document.getElementById("toggle-music-btn");
+    if (!audioPlayer || !btn) return;
+    btn.innerHTML = audioPlayer.paused ? "\uD83C\uDFB5 Play Music" : "\uD83C\uDFB5 Stop Music";
+}
+
+function initPlaylist() {
+    audioPlayer = document.getElementById("bg-music");
+    if (!audioPlayer || playlist.length === 0) return;
+    audioPlayer.src = playlist[0];
+    audioPlayer.addEventListener("ended", () => {
+        currentTrack = (currentTrack + 1) % playlist.length;
+        audioPlayer.src = playlist[currentTrack];
+        audioPlayer.play().catch(e => console.log("Playback error:", e));
+    });
+    audioPlayer.addEventListener("play",  updateMusicButtonState);
+    audioPlayer.addEventListener("pause", updateMusicButtonState);
+}
+
+function startMusic() {
+    if (audioPlayer && audioPlayer.paused) {
+        audioPlayer.play().catch(e => console.log("Autoplay blocked:", e));
+    }
+}
+
+// ------------------- Core Node Loading -------------------
 function loadNode(nodeId) {
+    window.scrollTo(0, 0);
+
     if (nodeId === "RESTART") {
         resetGame();
         return;
@@ -1366,178 +296,89 @@ function loadNode(nodeId) {
 
     const node = storyData[nodeId];
     if (!node) {
-        document.getElementById("story-content").innerHTML = formatStoryText("Error: node not found.");
+        console.error("Node not found:", nodeId);
+        document.getElementById("story-content").innerHTML =
+            formatStoryText(`Error: Node "${nodeId}" not found in story.json. Check file syntax and node IDs.`);
         return;
     }
 
-    // Handle logic node (determine_culprit)
+    // Logic node: determine_culprit
     if (node.isLogicNode) {
-        let clues = gameState.flags.cluesFound || 0;
-        let culpritCorrect = false;
-        let culpritIdentified = false;
-
+        const clues = gameState.flags.cluesFound || 0;
         if (clues === 0) {
-            culpritIdentified = false;
             gameState.flags.culpritIdentified = false;
-            gameState.flags.culpritCorrect = false;
+            gameState.flags.culpritCorrect    = false;
             gameState.currentNodeId = "epilogue";
             loadNode("epilogue");
             return;
-        } else if (clues >= 2) {
-            culpritCorrect = true;
-            culpritIdentified = true;
-        } else if (clues === 1) {
-            culpritCorrect = Math.random() < 0.5;
-            culpritIdentified = true;
         }
-        gameState.flags.culpritIdentified = culpritIdentified;
-        gameState.flags.culpritCorrect = culpritCorrect;
-        gameState.currentNodeId = culpritIdentified ? "sentencing" : "epilogue";
+        const culpritCorrect = clues >= 2 ? true : Math.random() < 0.5;
+        gameState.flags.culpritIdentified = true;
+        gameState.flags.culpritCorrect    = culpritCorrect;
+        gameState.currentNodeId = culpritCorrect ? "sentencing" : "epilogue";
         loadNode(gameState.currentNodeId);
         return;
     }
 
-    // Apply effects and check game over
+    // Apply node-level effects and check for game over
     applyNodeEffects(node);
     if (checkAndHandleGameOver()) return;
 
-    // Dynamic epilogue generation
+    // Dynamic epilogue
     if (node.isDynamic && node.id === "epilogue") {
-        document.getElementById("story-content").innerHTML = formatStoryText(generateEpilogue());
-        document.getElementById("choices-container").innerHTML = "";
+        document.getElementById("story-content").innerHTML     = formatStoryText(generateEpilogue());
+        document.getElementById("choices-container").innerHTML     = "";
         document.getElementById("rest-button-container").innerHTML = "";
-        document.getElementById("node-image").style.display = "none";
+        document.getElementById("node-image").style.display        = "none";
         return;
     }
 
-    // Normal node display: use contentKey if available and textMap has it, else fallback to node.content
-    let displayText = node.content;
-    if (node.contentKey && textMap[node.contentKey]) {
-        displayText = textMap[node.contentKey];
-    }
+    // Resolve display text: detailed prose > fallback summary
+    const displayText = (node.contentKey && textMap[node.contentKey])
+        ? textMap[node.contentKey]
+        : node.content;
     document.getElementById("story-content").innerHTML = formatStoryText(displayText);
 
     // Image handling
-	const imgElement = document.getElementById("node-image");
-	if (ENABLE_IMAGES) {
-		const imageBasePath = "assets/";
-		let imageName = node.imageKey || node.id;
-		const imageFile = imageBasePath + imageName + ".jpg";
-		const defaultImage = imageBasePath + "default.jpg";
-		
-		imgElement.src = imageFile;
-		imgElement.onload = () => {
-			imgElement.style.display = "block";
-		};
-		imgElement.onerror = () => {
-			// Try default image
-			imgElement.src = defaultImage;
-			imgElement.onerror = () => {
-				// If default also fails, hide
-				imgElement.style.display = "none";
-				imgElement.src = "";
-			};
-		};
-	} else {
-		imgElement.style.display = "none";
-		imgElement.src = "";
-	}
+    const imgElement = document.getElementById("node-image");
+    if (ENABLE_IMAGES) {
+        const imageName = node.imageKey || node.id;
+        imgElement.src = `assets/${imageName}.jpg`;
+        imgElement.onload  = () => { imgElement.style.display = "block"; };
+        imgElement.onerror = () => {
+            imgElement.src = "assets/default.jpg";
+            imgElement.onerror = () => {
+                imgElement.style.display = "none";
+                imgElement.src = "";
+            };
+        };
+    } else {
+        imgElement.style.display = "none";
+        imgElement.src = "";
+    }
 
+    // Choices
     const choicesDiv = document.getElementById("choices-container");
     choicesDiv.innerHTML = "";
-    node.choices.forEach(choice => {
-        let conditionMet = true;
-        if (choice.condition) {
-            if (choice.condition.startsWith("hasFlag:")) {
-                const flagName = choice.condition.substring(8);
-                conditionMet = !!gameState.flags[flagName];
-            } else if (choice.condition.includes(" or ")) {
-                const parts = choice.condition.split(" or ");
-                conditionMet = false;
-                for (let part of parts) {
-                    const subParts = part.trim().split(/\s+/);
-                    if (subParts.length === 3) {
-                        const stat = subParts[0];
-                        const op = subParts[1];
-                        const val = parseInt(subParts[2]);
-                        const statValue = gameState.special[stat];
-                        if (op === ">=" && statValue >= val) {
-                            conditionMet = true;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                const parts = choice.condition.split(/\s+/);
-                if (parts.length === 3) {
-                    const stat = parts[0];
-                    const op = parts[1];
-                    const val = parseInt(parts[2]);
-                    const statValue = gameState.special[stat];
-                    if (op === ">=" && statValue < val) conditionMet = false;
-                }
-            }
-        }
-        if (!conditionMet) return;
+
+    // Fix #2: guard against nodes with no choices array (terminal or stub nodes)
+    (node.choices || []).forEach(choice => {
+
+        if (!evaluateCondition(choice.condition)) return;
 
         const btn = document.createElement("button");
         btn.innerText = choice.text;
         btn.classList.add("choice-btn");
         btn.onclick = () => {
-            // Handle on_select actions
-            let shouldStay = false;
-            if (choice.on_select) {
-                if (choice.on_select.action === "add_clue") {
-                    gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
-                    gameState.flags[`clue_${choice.on_select.clue_id}`] = true;
-                    gameState.flags.has_any_clue = true;
-                    saveGame();
-                } else if (choice.on_select.action === "set_sentence") {
-                    gameState.flags.sentence = choice.on_select.sentence;
-                    saveGame();
-                } else if (choice.on_select.action === "set_flag") {
-                    gameState.flags[choice.on_select.flag] = choice.on_select.value;
-                    saveGame();
-                } else if (choice.on_select.action === "rest") {
-                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + choice.on_select.hpGain);
-                    gameState.daysLeft -= choice.on_select.daysCost;
-                    updateStatsDisplay();
-                    saveGame();
-                    shouldStay = true;
-                } else if (choice.on_select.action === "train") {
-                    gameState.special[choice.on_select.stat1] += 1;
-                    gameState.special[choice.on_select.stat2] += 1;
-                    gameState.daysLeft -= choice.on_select.daysCost; // daysCost should be positive (e.g., 2)
-					    updateStatsDisplay();
-						saveGame();
-						shouldStay = true;	
-                } else if (choice.on_select.action === "adjust") {
-                    if (choice.on_select.hp) gameState.hp += choice.on_select.hp;
-                    if (choice.on_select.days) gameState.daysLeft += choice.on_select.days;
-                    if (choice.on_select.clue) {
-                        gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
-                        gameState.flags[`clue_${choice.on_select.clue}`] = true;
-                        gameState.flags.has_any_clue = true;
-                    }
-					if (choice.on_select.stat_bonus) {
-						gameState.special[choice.on_select.stat_bonus] += choice.on_select.stat_bonus_value;
-					}
-                    if (gameState.hp > gameState.maxHp) gameState.hp = gameState.maxHp;
-                    if (gameState.hp < 0) gameState.hp = 0;
-                    updateStatsDisplay();
-                    saveGame();
-                    shouldStay = false;
-                }   
-            }
+            const shouldStay = applyChoiceAction(choice);
 
-            // Show extra content if any
-            let extraText = choice.extra_content || "";
-            if (choice.extraContentKey && textMap[choice.extraContentKey]) {
-                extraText = textMap[choice.extraContentKey];
-            }
+            const extraText = (choice.extraContentKey && textMap[choice.extraContentKey])
+                ? textMap[choice.extraContentKey]
+                : (choice.extra_content || "");
 
             if (extraText && !shouldStay) {
-                document.getElementById("story-content").innerHTML = formatStoryText(displayText + "\n\n" + extraText);
+                document.getElementById("story-content").innerHTML =
+                    formatStoryText(displayText + "\n\n" + extraText);
                 choicesDiv.innerHTML = "";
                 document.getElementById("rest-button-container").innerHTML = "";
                 const continueBtn = document.createElement("button");
@@ -1558,16 +399,19 @@ function loadNode(nodeId) {
         choicesDiv.appendChild(btn);
     });
 
-    // Rest button (only at original rest hubs)
+    // Fix #4: rest hub is now data-driven via "isRestHub": true in story.json.
+    //         Optional "restHpGain" and "restDayCost" fields override the defaults.
     const restContainer = document.getElementById("rest-button-container");
     restContainer.innerHTML = "";
-    if (nodeId === "wasteland_junction" || nodeId === "crossroads_village") {
+    if (node.isRestHub) {
+        const hpGain  = node.restHpGain  ?? 2;
+        const dayCost = node.restDayCost ?? 2;
         const restBtn = document.createElement("button");
-        restBtn.innerText = "Rest (+2 HP, -2 days)";
+        restBtn.innerText = `Rest (+${hpGain} HP, -${dayCost} days)`;
         restBtn.classList.add("rest-btn");
         restBtn.onclick = () => {
-            gameState.hp = Math.min(gameState.maxHp, gameState.hp + 2);
-            gameState.daysLeft -= 2;
+            gameState.hp = Math.min(gameState.maxHp, gameState.hp + hpGain);
+            gameState.daysLeft -= dayCost;
             updateStatsDisplay();
             saveGame();
             if (checkAndHandleGameOver()) return;
@@ -1577,16 +421,104 @@ function loadNode(nodeId) {
     }
 }
 
+// ------------------- Condition Evaluator -------------------
+// Extracted from the inline forEach so it can be read and extended independently.
+function evaluateCondition(condition) {
+    if (!condition) return true;
+
+    if (condition.startsWith("hasFlag:")) {
+        return !!gameState.flags[condition.substring(8)];
+    }
+    if (condition.startsWith("notHasFlag:")) {
+        return !gameState.flags[condition.substring(11)];
+    }
+    if (condition.includes(" or ")) {
+        return condition.split(" or ").some(part => evalStatCondition(part.trim()));
+    }
+    return evalStatCondition(condition);
+}
+
+function evalStatCondition(expr) {
+    const parts = expr.split(/\s+/);
+    if (parts.length !== 3) return true;  // malformed → show the choice rather than silently hide it
+    const [stat, op, valStr] = parts;
+    const val      = parseInt(valStr, 10);
+    const statValue = gameState.special[stat];
+    if (isNaN(val) || statValue === undefined) return true;
+    if (op === ">=") return statValue >= val;
+    if (op === "<=") return statValue <= val;
+    if (op === ">")  return statValue >  val;
+    if (op === "<")  return statValue <  val;
+    if (op === "==") return statValue === val;
+    return true;
+}
+
+// ------------------- Choice Action Handler -------------------
+// Returns true if the node should reload in place (rest / train), false to navigate away.
+function applyChoiceAction(choice) {
+    const sel = choice.on_select;
+    if (!sel) return false;
+
+    switch (sel.action) {
+
+        case "add_clue":
+            // Fix #6: delegates to shared addClue() helper
+            addClue(sel.clue_id);
+            saveGame();
+            return false;
+
+        case "set_flag":
+            gameState.flags[sel.flag] = sel.value;
+            saveGame();
+            return false;
+
+        case "set_sentence":
+            gameState.flags.sentence = sel.sentence;
+            saveGame();
+            return false;
+
+        case "rest":
+            gameState.hp = Math.min(gameState.maxHp, gameState.hp + sel.hpGain);
+            gameState.daysLeft -= sel.daysCost;
+            updateStatsDisplay();
+            saveGame();
+            return true;    // stay on current node
+
+        case "train":
+            gameState.special[sel.stat1] += 1;
+            gameState.special[sel.stat2] += 1;
+            gameState.daysLeft -= sel.daysCost;
+            updateStatsDisplay();
+            saveGame();
+            return true;    // stay on current node
+
+        case "adjust":
+            if (sel.hp)         gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + sel.hp));
+            if (sel.days)       gameState.daysLeft += sel.days;
+            // Fix #6: delegates to shared addClue() helper
+            if (sel.clue)       addClue(sel.clue);
+            if (sel.stat_bonus) gameState.special[sel.stat_bonus] += sel.stat_bonus_value;
+            if (sel.set_flag)   gameState.flags[sel.set_flag] = true;
+            updateStatsDisplay();
+            saveGame();
+            return false;
+
+        default:
+            console.warn("Unknown on_select action:", sel.action);
+            return false;
+    }
+}
+
 // ------------------- Character Creation Logic -------------------
-let creationPoints = 5;
-let creationStats = {
-    strength: 5,
-    perception: 5,
-    endurance: 5,
-    charisma: 5,
-    intelligence: 5,
-    agility: 5,
-    luck: 5
+let creationPoints = CONFIG.CREATION_POINTS;
+let creationStats  = {
+    strength:     CONFIG.BASE_SPECIAL,
+    perception:   CONFIG.BASE_SPECIAL,
+    endurance:    CONFIG.BASE_SPECIAL,
+    charisma:     CONFIG.BASE_SPECIAL,
+    intelligence: CONFIG.BASE_SPECIAL,
+    agility:      CONFIG.BASE_SPECIAL,
+    luck:         CONFIG.BASE_SPECIAL,
 };
 
 function updateCreationUI() {
@@ -1600,118 +532,120 @@ function updateCreationUI() {
     document.getElementById("points-remaining").innerText = creationPoints;
 }
 
+// Fix #8: enforce upper bound via CONFIG.MAX_SPECIAL.
+//         Bonus: the two identical branches simplified to one line.
 function modifyStat(stat, delta) {
     const newVal = creationStats[stat] + delta;
-    if (newVal < 1) return;
+    if (newVal < 1 || newVal > CONFIG.MAX_SPECIAL) return;
     if (delta === 1 && creationPoints <= 0) return;
-    if (delta === -1) {
-        creationStats[stat] = newVal;
-        creationPoints++;
-    } else if (delta === 1) {
-        creationStats[stat] = newVal;
-        creationPoints--;
-    }
+    creationStats[stat] = newVal;
+    creationPoints -= delta;    // +1 raises stat → costs a point; -1 lowers → refunds a point
     updateCreationUI();
 }
 
 function confirmCreation() {
-    gameState.special = { ...creationStats };
-    gameState.maxHp = 2 * gameState.special.endurance;
-    gameState.hp = gameState.maxHp;
-    gameState.daysLeft = 15;
-    gameState.flags = {};
-    gameState.currentNodeId = "vault_start";
+    // Fix #5: use CONFIG constants
+    gameState.special   = { ...creationStats };
+    gameState.maxHp     = CONFIG.HP_PER_ENDURANCE * gameState.special.endurance;
+    gameState.hp        = gameState.maxHp;
+    gameState.daysLeft  = CONFIG.STARTING_DAYS;
+    gameState.flags     = {};
+    gameState.currentNodeId = CONFIG.START_NODE;
     updateStatsDisplay();
     document.getElementById("creation-modal").style.display = "none";
     clearSave();
     saveGame();
-    loadNode("vault_start");
+    loadNode(CONFIG.START_NODE);
     startMusic();
 }
 
 function showCreationScreen() {
-    creationPoints = 5;
-    creationStats = {
-        strength: 5,
-        perception: 5,
-        endurance: 5,
-        charisma: 5,
-        intelligence: 5,
-        agility: 5,
-        luck: 5
+    // Fix #5: use CONFIG constants
+    creationPoints = CONFIG.CREATION_POINTS;
+    creationStats  = {
+        strength:     CONFIG.BASE_SPECIAL,
+        perception:   CONFIG.BASE_SPECIAL,
+        endurance:    CONFIG.BASE_SPECIAL,
+        charisma:     CONFIG.BASE_SPECIAL,
+        intelligence: CONFIG.BASE_SPECIAL,
+        agility:      CONFIG.BASE_SPECIAL,
+        luck:         CONFIG.BASE_SPECIAL,
     };
     updateCreationUI();
-    document.getElementById("creation-modal").style.display = "flex";
-    document.getElementById("story-content").innerHTML = "";
-    document.getElementById("choices-container").innerHTML = "";
+    document.getElementById("creation-modal").style.display    = "flex";
+    document.getElementById("story-content").innerHTML         = "";
+    document.getElementById("choices-container").innerHTML     = "";
     document.getElementById("rest-button-container").innerHTML = "";
-    document.getElementById("node-image").style.display = "none";
+    document.getElementById("node-image").style.display        = "none";
 }
 
 // ------------------- Restart Button -------------------
 function attachRestartButton() {
-    const restartBtn = document.getElementById("restart-story-btn");
-    if (restartBtn) {
-        restartBtn.onclick = () => resetGame();
-    }
+    const btn = document.getElementById("restart-story-btn");
+    if (btn) btn.onclick = () => resetGame();
 }
 
-// ------------------- Load Detailed Story JSON -------------------
-function loadDetailedStory(callback) {
-    fetch("detailed_story.json")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            textMap = data;
-            console.log("Detailed story loaded successfully.");
-            // Optional: log first key to verify
-            console.log("Sample key 'vault_start_text':", textMap["vault_start_text"]);
-            if (callback) callback();
-        })
-        .catch(error => {
-            console.error("Failed to load detailed_story.json:", error);
-            console.warn("Using fallback content (short summaries).");
-            textMap = {};
-            // TEMPORARY TEST: inject a test text to verify engine works
-            textMap["vault_start_text"] = "⚠️ TEST: detailed_story.json not loaded. Please check the file location and syntax.\n\nIf you see this, the engine works but the JSON file is missing or invalid.";
-            if (callback) callback();
-        });
+// ------------------- Load JSON Files -------------------
+// Fix #7: both files fetched in parallel with Promise.all; sequential callbacks removed
+async function loadAllData() {
+    const [storyRes, textRes] = await Promise.all([
+        fetch("story.json"),
+        fetch("detailed_story.json")
+    ]);
+
+    if (!storyRes.ok) throw new Error(`story.json: HTTP ${storyRes.status}`);
+    storyData = await storyRes.json();
+
+    // detailed_story.json is optional — fall back to empty map if missing
+    if (textRes.ok) {
+        textMap = await textRes.json();
+    } else {
+        console.warn("detailed_story.json not found — using fallback node.content summaries.");
+        textMap = {};
+    }
+
+    console.log(`Loaded ${Object.keys(storyData).length} nodes, ${Object.keys(textMap).length} text keys.`);
 }
 
 // ------------------- Initialization -------------------
 document.addEventListener("DOMContentLoaded", () => {
-    // Show loading message while fetching JSON
-    document.getElementById("story-content").innerHTML = formatStoryText("Loading wasteland tales...");
-    document.getElementById("choices-container").innerHTML = "";
+    document.getElementById("story-content").innerHTML         = formatStoryText("Loading wasteland tales\u2026");
+    document.getElementById("choices-container").innerHTML     = "";
     document.getElementById("rest-button-container").innerHTML = "";
-    document.getElementById("node-image").style.display = "none";
+    document.getElementById("node-image").style.display        = "none";
 
     initPlaylist();
 
-    loadDetailedStory(() => {
-        // Attach UI listeners
-        document.getElementById("special-creator").addEventListener("click", (e) => {
-            const btn = e.target.closest("button");
-            if (!btn) return;
-            const stat = btn.getAttribute("data-stat");
-            const dir = btn.getAttribute("data-dir");
-            if (stat && dir) {
-                modifyStat(stat, dir === "up" ? 1 : -1);
-            }
-        });
-        document.getElementById("confirm-creation").addEventListener("click", confirmCreation);
-        attachRestartButton();
+    loadAllData()
+        .then(() => {
+            document.getElementById("special-creator").addEventListener("click", (e) => {
+                const btn = e.target.closest("button");
+                if (!btn) return;
+                const stat = btn.getAttribute("data-stat");
+                const dir  = btn.getAttribute("data-dir");
+                if (stat && dir) modifyStat(stat, dir === "up" ? 1 : -1);
+            });
+            document.getElementById("confirm-creation").addEventListener("click", confirmCreation);
+            attachRestartButton();
 
-        const hasSave = loadGame();
-        if (hasSave && gameState.currentNodeId && storyData[gameState.currentNodeId]) {
-            document.getElementById("creation-modal").style.display = "none";
-            loadNode(gameState.currentNodeId);
-        } else {
-            showCreationScreen();
-        }
-    });
+            const musicBtn = document.getElementById("toggle-music-btn");
+            if (musicBtn) musicBtn.onclick = toggleMusic;
+            updateMusicButtonState();
+
+            const hasSave = loadGame();
+            if (hasSave && gameState.currentNodeId && storyData[gameState.currentNodeId]) {
+                document.getElementById("creation-modal").style.display = "none";
+                loadNode(gameState.currentNodeId);
+            } else {
+                showCreationScreen();
+            }
+        })
+        .catch(err => {
+            console.error("Failed to load story data:", err);
+            document.getElementById("story-content").innerHTML =
+                formatStoryText(
+                    `Failed to load story data: ${err.message}\n\n` +
+                    `Make sure you are running the game through a local HTTP server (not file://).`
+                );
+        });
 });

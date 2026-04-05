@@ -1,0 +1,1702 @@
+{
+  "vault_start": {
+    "id": "vault_start",
+    "section": "I. Vault",
+    "content": "[vault_start] You wake up in your quarters. A message from the Overseer awaits.",
+    "contentKey": "vault_start_text",
+    "imageKey": "vault_start",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Go to the Overseer's office",
+        "target": "overseer_office"
+      }
+    ]
+  },
+  "overseer_office": {
+    "id": "overseer_office",
+    "section": "I. Vault",
+    "content": "[overseer_office] The Overseer gives you the mission. You accept.",
+    "contentKey": "overseer_office_text",
+    "imageKey": "overseer_office",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Accept the mission",
+        "target": "vault_atrium"
+      },
+      {
+        "text": "[Perception ≥ 6] Ask about the sabotage",
+        "target": "vault_atrium",
+        "condition": "perception >= 6",
+        "extra_content": "You notice a file on her terminal. She admits the assistant may be involved.",
+        "extraContentKey": "overseer_office_choice_1_extra",
+        "on_select": {
+          "action": "add_clue",
+          "clue_id": 1
+        }
+      }
+    ]
+  },
+  "vault_atrium": {
+    "id": "vault_atrium",
+    "section": "I. Vault",
+    "content": "[vault_atrium] You say goodbye to the dwellers and head to the exit.",
+    "contentKey": "vault_atrium_text",
+    "imageKey": "vault_atrium",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Leave the vault",
+        "target": "vault_exit"
+      }
+    ]
+  },
+  "vault_exit": {
+    "id": "vault_exit",
+    "section": "I. Vault",
+    "content": "[vault_exit] The vault door opens. Radiation stings your skin. (HP -1, Endurance ≥ 6 negates)",
+    "contentKey": "vault_exit_text",
+    "imageKey": "vault_exit",
+    "daysCost": 0,
+    "hpChange": -1,
+    "hpModifiers": [
+      {
+        "stat": "endurance",
+        "min": 6,
+        "reduction": 1
+      }
+    ],
+    "choices": [
+      {
+        "text": "Step into the wasteland",
+        "target": "ruined_town_square",
+        "on_select": {
+          "action": "adjust",
+          "days": -1,
+          "hp": 0
+        }
+      }
+    ]
+  },
+  "ruined_town_square": {
+    "id": "ruined_town_square",
+    "section": "II. Ruined Town",
+    "content": "[ruined_town_square] A ruined town square, buildings gutted by fire.",
+    "contentKey": "ruined_town_square_text",
+    "imageKey": "ruined_town_square",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Search the abandoned shop",
+        "target": "abandoned_shop"
+      },
+      {
+        "text": "Climb the watchtower",
+        "target": "watchtower"
+      },
+      {
+        "text": "Investigate the crashed vertibird",
+        "target": "crashed_vertibird"
+      },
+      {
+        "text": "Climb the radio tower",
+        "target": "radio_tower"
+      },
+      {
+        "text": "Drink from the well",
+        "target": "well"
+      },
+      {
+        "text": "Explore the ruined church",
+        "target": "church_ruin"
+      }
+    ]
+  },
+  "abandoned_shop": {
+    "id": "abandoned_shop",
+    "section": "II. Ruined Town",
+    "content": "[abandoned_shop] A collapsed general store.",
+    "contentKey": "abandoned_shop_text",
+    "imageKey": "abandoned_shop",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Search for supplies",
+        "target": "abandoned_shop_after",
+        "extraContentKey": "abandoned_shop_search_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "abandoned_shop_after": {
+    "id": "abandoned_shop_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "abandoned_shop_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      },
+      {
+        "text": "Exit to the road (road_1)",
+        "target": "road_1",
+        "on_select": {
+          "action": "adjust",
+          "days": -1,
+          "hp": 0
+        }
+      }
+    ]
+  },
+  "watchtower": {
+    "id": "watchtower",
+    "section": "II. Ruined Town",
+    "content": "[watchtower] A wooden watchtower.",
+    "contentKey": "watchtower_text",
+    "imageKey": "watchtower",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Climb the tower",
+        "target": "watchtower_after",
+        "extraContentKey": "watchtower_climb_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": 0
+        }
+      },
+      {
+        "text": "Use perception to find safe steps (Perception ≥ 6)",
+        "target": "watchtower_after",
+        "condition": "perception >= 6",
+        "extraContentKey": "watchtower_climb_perception_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "watchtower_after": {
+    "id": "watchtower_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "watchtower_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      },
+      {
+        "text": "Exit to NCR checkpoint",
+        "target": "ncr_checkpoint",
+        "on_select": {
+          "action": "adjust",
+          "days": -1,
+          "hp": 0
+        }
+      }
+    ]
+  },
+  "crashed_vertibird": {
+    "id": "crashed_vertibird",
+    "section": "II. Ruined Town",
+    "content": "[crashed_vertibird] A downed Vertibird.",
+    "contentKey": "crashed_vertibird_text",
+    "imageKey": "crashed_vertibird",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Loot the wreckage",
+        "target": "crashed_vertibird_after",
+        "extraContentKey": "vertibird_loot_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "crashed_vertibird_after": {
+    "id": "crashed_vertibird_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "crashed_vertibird_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      },
+      {
+        "text": "Exit to the road (road_1)",
+        "target": "road_1",
+        "on_select": {
+          "action": "adjust",
+          "days": -1,
+          "hp": 0
+        }
+      }
+    ]
+  },
+  "radio_tower": {
+    "id": "radio_tower",
+    "section": "II. Ruined Town",
+    "content": "[radio_tower] A rusted radio tower.",
+    "contentKey": "radio_tower_text",
+    "imageKey": "radio_tower",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Try to hack the terminal",
+        "target": "radio_tower_after",
+        "extraContentKey": "radio_hack_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": 0
+        }
+      },
+      {
+        "text": "Hack carefully (Intelligence ≥ 6)",
+        "target": "radio_tower_after",
+        "condition": "intelligence >= 6",
+        "extraContentKey": "radio_hack_intelligent_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "radio_tower_after": {
+    "id": "radio_tower_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "radio_tower_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      },
+      {
+        "text": "Exit to NCR checkpoint",
+        "target": "ncr_checkpoint",
+        "on_select": {
+          "action": "adjust",
+          "days": -1,
+          "hp": 0
+        }
+      }
+    ]
+  },
+  "well": {
+    "id": "well",
+    "section": "II. Ruined Town",
+    "content": "[well] An old stone well.",
+    "contentKey": "well_text",
+    "imageKey": "well",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Drink from the well",
+        "target": "well_after",
+        "extraContentKey": "well_drink_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 1,
+          "days": 0
+        }
+      },
+      {
+        "text": "Drink carefully (Luck ≥ 6)",
+        "target": "well_after",
+        "condition": "luck >= 6",
+        "extraContentKey": "well_drink_lucky_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 2,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "well_after": {
+    "id": "well_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "well_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      }
+    ]
+  },
+  "church_ruin": {
+    "id": "church_ruin",
+    "section": "II. Ruined Town",
+    "content": "[church_ruin] A ruined church.",
+    "contentKey": "church_ruin_text",
+    "imageKey": "church_ruin",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Explore the ruins",
+        "target": "church_ruin_after",
+        "extraContentKey": "church_explore_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": 0
+        }
+      },
+      {
+        "text": "Explore carefully (Perception ≥ 6)",
+        "target": "church_ruin_after",
+        "condition": "perception >= 6",
+        "extraContentKey": "church_explore_perceptive_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "church_ruin_after": {
+    "id": "church_ruin_after",
+    "section": "II. Ruined Town",
+    "content": "",
+    "contentKey": "church_ruin_after_text",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Return to town square",
+        "target": "ruined_town_square"
+      }
+    ]
+  },
+  "road_1": {
+    "id": "road_1",
+    "section": "III. First Hub",
+    "content": "[road_1] A ruined highway. Several paths lead away.",
+    "contentKey": "road_1_text",
+    "imageKey": "road_1",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Approach the NCR checkpoint",
+        "target": "ncr_checkpoint"
+      },
+      {
+        "text": "Investigate the Brotherhood scout",
+        "target": "brotherhood_scout"
+      },
+      {
+        "text": "Visit the ghoul hermit",
+        "target": "ghoul_hermit"
+      },
+      {
+        "text": "Take the radscorpion trench",
+        "target": "radscorpion_trench"
+      }
+    ]
+  },
+  "ncr_checkpoint": {
+    "id": "ncr_checkpoint",
+    "section": "III. First Hub",
+    "content": "[ncr_checkpoint] NCR soldiers ask for help with raiders.",
+    "contentKey": "ncr_checkpoint_text",
+    "imageKey": "ncr_checkpoint",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Help them",
+        "target": "ncr_raid_fight"
+      },
+      {
+        "text": "Refuse and move on",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "ncr_raid_fight": {
+    "id": "ncr_raid_fight",
+    "section": "III. First Hub",
+    "content": "[ncr_raid_fight] NCR soldiers need your help against raiders.",
+    "contentKey": "ncr_raid_fight_text",
+    "imageKey": "ncr_raid_fight",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight normally",
+        "target": "wasteland_junction",
+        "extraContentKey": "ncr_raid_fight_normal_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -3,
+          "days": -1
+        }
+      },
+      {
+        "text": "Use perception to spot enemy positions (Perception ≥ 6)",
+        "target": "wasteland_junction",
+        "condition": "perception >= 6",
+        "extraContentKey": "ncr_raid_fight_perception_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "brotherhood_scout": {
+    "id": "brotherhood_scout",
+    "section": "III. First Hub",
+    "content": "[brotherhood_scout] A Brotherhood scribe needs help with a robot.",
+    "contentKey": "brotherhood_scout_text",
+    "imageKey": "brotherhood_scout",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Help",
+        "target": "brotherhood_patrol_base"
+      },
+      {
+        "text": "Ignore",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "brotherhood_patrol_base": {
+    "id": "brotherhood_patrol_base",
+    "section": "III. First Hub",
+    "content": "[brotherhood_patrol_base] Small Brotherhood camp. They offer a quest.",
+    "contentKey": "brotherhood_patrol_base_text",
+    "imageKey": "brotherhood_patrol_base",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isRestHub": true,
+    "choices": [
+      {
+        "text": "Rest here",
+        "target": "brotherhood_patrol_base",
+        "extraContentKey": "brotherhood_patrol_base_rest_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 2,
+          "days": -2
+        }
+      },
+      {
+        "text": "Help the scribe with the malfunctioning robot",
+        "target": "brotherhood_robot_fight",
+        "extraContentKey": "brotherhood_patrol_base_help_text"
+      },
+      {
+        "text": "Leave",
+        "target": "wasteland_junction",
+        "extraContentKey": "brotherhood_patrol_base_leave_text"
+      }
+    ]
+  },
+  "brotherhood_robot_fight": {
+    "id": "brotherhood_robot_fight",
+    "section": "III. First Hub",
+    "content": "[brotherhood_robot_fight] The scribe leads you to a decommissioned sentry bot that has gone haywire.",
+    "contentKey": "brotherhood_robot_fight_text",
+    "imageKey": "brotherhood_robot_fight",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight the robot head‑on",
+        "target": "brotherhood_patrol_base",
+        "extraContentKey": "brotherhood_robot_fight_normal_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -6,
+          "days": -1,
+          "stat_bonus": "intelligence",
+          "stat_bonus_value": 1
+        }
+      },
+      {
+        "text": "Use your intelligence to disable it (Intelligence ≥ 7)",
+        "target": "brotherhood_patrol_base",
+        "condition": "intelligence >= 7",
+        "extraContentKey": "brotherhood_robot_fight_intelligent_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1,
+          "stat_bonus": "intelligence",
+          "stat_bonus_value": 1
+        }
+      },
+      {
+        "text": "Back down and leave",
+        "target": "brotherhood_patrol_base",
+        "extraContentKey": "brotherhood_robot_fight_retreat_text"
+      }
+    ]
+  },
+  "ghoul_hermit": {
+    "id": "ghoul_hermit",
+    "section": "III. First Hub",
+    "content": "[ghoul_hermit] A ghoul hermit wants you to clear a bloatfly nest.",
+    "contentKey": "ghoul_hermit_text",
+    "imageKey": "ghoul_hermit",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Clear the nest",
+        "target": "bloatfly_nest"
+      },
+      {
+        "text": "Refuse",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "bloatfly_nest": {
+    "id": "bloatfly_nest",
+    "section": "III. First Hub",
+    "content": "[bloatfly_nest] You face a bloatfly nest.",
+    "contentKey": "bloatfly_nest_text",
+    "imageKey": "bloatfly_nest",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight through",
+        "target": "wasteland_junction",
+        "extraContentKey": "bloatfly_nest_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Use perception to avoid damage (Perception ≥ 6)",
+        "target": "wasteland_junction",
+        "condition": "perception >= 6",
+        "extraContentKey": "bloatfly_nest_perception_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "radscorpion_trench": {
+    "id": "radscorpion_trench",
+    "section": "III. First Hub",
+    "content": "[radscorpion_trench] Radscorpions block the trench.",
+    "contentKey": "radscorpion_trench_text",
+    "imageKey": "radscorpion_trench",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight through",
+        "target": "wasteland_junction",
+        "extraContentKey": "radscorpion_trench_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -3,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with agility (Agility ≥ 6)",
+        "target": "wasteland_junction",
+        "condition": "agility >= 6",
+        "extraContentKey": "radscorpion_trench_fight_agile_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with strength (Strength ≥ 7)",
+        "target": "wasteland_junction",
+        "condition": "strength >= 7",
+        "extraContentKey": "radscorpion_trench_fight_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      },
+      {
+        "text": "Take the long way around",
+        "target": "wasteland_junction",
+        "extraContentKey": "radscorpion_trench_round_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -3
+        }
+      }
+    ]
+  },
+  "wasteland_junction": {
+    "id": "wasteland_junction",
+    "section": "IV. Wasteland Junction",
+    "content": "[wasteland_junction] A fork in the road. You see a merchant, a shack, a trail, and a faint campfire glow in the distance.",
+    "contentKey": "wasteland_junction_text",
+    "imageKey": "wasteland_junction",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isRestHub": true,
+    "choices": [
+      {
+        "text": "Visit the traveling merchant",
+        "target": "traveling_merchant"
+      },
+      {
+        "text": "Search the abandoned shack",
+        "target": "abandoned_shack"
+      },
+      {
+        "text": "Take the path (ambush)",
+        "target": "wasteland_ambush"
+      },
+      {
+        "text": "Follow the campfire glow",
+        "target": "campfire_rest"
+      },
+      {
+        "text": "Move on to the village",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "traveling_merchant": {
+    "id": "traveling_merchant",
+    "section": "IV. Wasteland Junction",
+    "content": "[traveling_merchant] The merchant tells you about a nearby mercenary camp that welcomes recruits for physical training. 'They'll make you stronger, but it takes time.'",
+    "contentKey": "traveling_merchant_text",
+    "imageKey": "traveling_merchant",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Ask about the training camp",
+        "target": "training_grounds"
+      },
+      {
+        "text": "Return to junction",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "abandoned_shack": {
+    "id": "abandoned_shack",
+    "section": "IV. Wasteland Junction",
+    "content": "[abandoned_shack] You find pre-war logs and some supplies. As you leave, you take a wrong turn and end up far from the junction.",
+    "contentKey": "abandoned_shack_text",
+    "imageKey": "abandoned_shack",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Continue forward (no way back)",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "wasteland_ambush": {
+    "id": "wasteland_ambush",
+    "section": "IV. Wasteland Junction",
+    "content": "[wasteland_ambush] You are ambushed!",
+    "contentKey": "wasteland_ambush_text",
+    "imageKey": "wasteland_ambush",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight",
+        "target": "wasteland_junction",
+        "extraContentKey": "wasteland_ambush_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Rely on luck (Luck ≥ 7)",
+        "target": "wasteland_junction",
+        "condition": "luck >= 7",
+        "extraContentKey": "wasteland_ambush_luck_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with strength (Strength ≥ 8)",
+        "target": "wasteland_junction",
+        "condition": "strength >= 8",
+        "extraContentKey": "wasteland_ambush_fight_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "campfire_rest": {
+    "id": "campfire_rest",
+    "section": "IV. Wasteland Junction",
+    "content": "[campfire_rest] A campfire with a lone traveler.",
+    "contentKey": "campfire_rest_text",
+    "imageKey": "campfire_rest",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isRestHub": true,
+    "choices": [
+      {
+        "text": "Rest here",
+        "target": "campfire_rest",
+        "extraContentKey": "campfire_rest_rest_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 2,
+          "days": -2
+        }
+      },
+      {
+        "text": "Thank him and leave",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "training_grounds": {
+    "id": "training_grounds",
+    "section": "IV. Wasteland Junction",
+    "content": "[training_grounds] A pre-war gym.",
+    "contentKey": "training_grounds_text",
+    "imageKey": "training_grounds",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Train (lose 2 days, Strength +1, Endurance +1)",
+        "target": "training_grounds",
+        "on_select": {
+          "action": "train",
+          "stat1": "strength",
+          "stat2": "endurance",
+          "daysCost": 2
+        }
+      },
+      {
+        "text": "Leave",
+        "target": "wasteland_junction"
+      }
+    ]
+  },
+  "crossroads_village": {
+    "id": "crossroads_village",
+    "section": "V. Second Hub",
+    "content": "[crossroads_village] A small settlement. You can rest, trade, or take quests.",
+    "contentKey": "crossroads_village_text",
+    "imageKey": "crossroads_village",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isRestHub": true,
+    "choices": [
+      {
+        "text": "Visit the village trader",
+        "target": "village_trader"
+      },
+      {
+        "text": "Talk to NCR contact",
+        "target": "ncr_village_contact"
+      },
+      {
+        "text": "Talk to Brotherhood contact",
+        "target": "brotherhood_village_contact"
+      },
+      {
+        "text": "Investigate Enclave rumors",
+        "target": "enclave_rumor"
+      },
+      {
+        "text": "Explore the deathclaw cave",
+        "target": "deathclaw_cave"
+      },
+      {
+        "text": "Visit the ghoul doctor",
+        "target": "ghoul_doctor"
+      },
+      {
+        "text": "Head directly to the Depot",
+        "target": "depot_gate"
+      },
+      {
+        "text": "Rest here",
+        "target": "crossroads_village",
+        "extraContentKey": "crossroads_village_rest_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 2,
+          "days": -2
+        }
+      }
+    ]
+  },
+  "village_trader": {
+    "id": "village_trader",
+    "section": "V. Second Hub",
+    "content": "[village_trader] You browse goods.",
+    "contentKey": "village_trader_text",
+    "imageKey": "village_trader",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Buy Buffout (Strength +1, -2 HP)",
+        "target": "crossroads_village",
+        "condition": "notHasFlag:bought_drug",
+        "extraContentKey": "village_trader_buffout_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "stat_bonus": "strength",
+          "stat_bonus_value": 1,
+          "set_flag": "bought_drug"
+        }
+      },
+      {
+        "text": "Buy Mentats (Perception +1, -2 HP)",
+        "target": "crossroads_village",
+        "condition": "notHasFlag:bought_drug",
+        "extraContentKey": "village_trader_mentats_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "stat_bonus": "perception",
+          "stat_bonus_value": 1,
+          "set_flag": "bought_drug"
+        }
+      },
+      {
+        "text": "Buy Jet (Agility +1, -2 HP)",
+        "target": "crossroads_village",
+        "condition": "notHasFlag:bought_drug",
+        "extraContentKey": "village_trader_jet_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "stat_bonus": "agility",
+          "stat_bonus_value": 1,
+          "set_flag": "bought_drug"
+        }
+      },
+      {
+        "text": "Buy Psycho (Endurance +1, -2 HP)",
+        "target": "crossroads_village",
+        "condition": "notHasFlag:bought_drug",
+        "extraContentKey": "village_trader_psycho_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "stat_bonus": "endurance",
+          "stat_bonus_value": 1,
+          "set_flag": "bought_drug"
+        }
+      },
+      {
+        "text": "Buy RadAway (remove radiation?) – not implemented",
+        "target": "crossroads_village",
+        "condition": "notHasFlag:bought_drug",
+        "extraContentKey": "village_trader_placeholder_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "set_flag": "bought_drug"
+        }
+      },
+      {
+        "text": "Just browse",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "ncr_village_contact": {
+    "id": "ncr_village_contact",
+    "section": "V. Second Hub",
+    "content": "[ncr_village_contact] An NCR agent asks you to deliver a message.",
+    "contentKey": "ncr_village_contact_text",
+    "imageKey": "ncr_village_contact",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Accept",
+        "target": "ncr_outpost_depot"
+      },
+      {
+        "text": "Decline",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "ncr_outpost_depot": {
+    "id": "ncr_outpost_depot",
+    "section": "V. Second Hub",
+    "content": "[ncr_outpost_depot] NCR outpost near the Depot.",
+    "contentKey": "ncr_outpost_depot_text",
+    "imageKey": "ncr_outpost_depot",
+    "daysCost": 1,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Accept supply quest",
+        "target": "raider_camp"
+      },
+      {
+        "text": "Go to Depot directly",
+        "target": "depot_gate"
+      }
+    ]
+  },
+  "raider_camp": {
+    "id": "raider_camp",
+    "section": "V. Second Hub",
+    "content": "[raider_camp] A raider camp.",
+    "contentKey": "raider_camp_text",
+    "imageKey": "raider_camp",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Assault the camp",
+        "target": "depot_gate",
+        "extraContentKey": "raider_camp_assault_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -4,
+          "days": -1
+        }
+      },
+      {
+        "text": "Assault with strength (Strength ≥ 7)",
+        "target": "depot_gate",
+        "condition": "strength >= 7",
+        "extraContentKey": "raider_camp_assault_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Use intelligence to sabotage supplies (Intelligence ≥ 6)",
+        "target": "depot_gate",
+        "condition": "intelligence >= 6",
+        "extraContentKey": "raider_camp_intelligence_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "brotherhood_village_contact": {
+    "id": "brotherhood_village_contact",
+    "section": "V. Second Hub",
+    "content": "[brotherhood_village_contact] A Brotherhood initiate wants tech from a Yao Guai cave.",
+    "contentKey": "brotherhood_village_contact_text",
+    "imageKey": "brotherhood_village_contact",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Accept",
+        "target": "yaoguai_cave_tech"
+      },
+      {
+        "text": "Decline",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "yaoguai_cave_tech": {
+    "id": "yaoguai_cave_tech",
+    "section": "V. Second Hub",
+    "content": "[yaoguai_cave_tech] A Yao Guai cave.",
+    "contentKey": "yaoguai_cave_tech_text",
+    "imageKey": "yaoguai_cave_tech",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight the Yao Guai",
+        "target": "depot_gate",
+        "extraContentKey": "yaoguai_cave_tech_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -3,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with strength (Strength ≥ 7)",
+        "target": "depot_gate",
+        "condition": "strength >= 7",
+        "extraContentKey": "yaoguai_cave_tech_fight_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Set a trap (Agility ≥ 6)",
+        "target": "depot_gate",
+        "condition": "agility >= 6",
+        "extraContentKey": "yaoguai_cave_tech_trap_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Abandon the quest",
+        "target": "crossroads_village",
+        "extraContentKey": "yaoguai_cave_tech_abandon_text"
+      }
+    ]
+  },
+  "enclave_rumor": {
+    "id": "enclave_rumor",
+    "section": "V. Second Hub",
+    "content": "[enclave_rumor] You hear rumors of Enclave activity.",
+    "contentKey": "enclave_rumor_text",
+    "imageKey": "enclave_rumor",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Investigate",
+        "target": "enclave_scout_patrol"
+      },
+      {
+        "text": "Ignore",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "enclave_scout_patrol": {
+    "id": "enclave_scout_patrol",
+    "section": "V. Second Hub",
+    "content": "[enclave_scout_patrol] Enclave patrol.",
+    "contentKey": "enclave_scout_patrol_text",
+    "imageKey": "enclave_scout_patrol",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight",
+        "target": "depot_gate",
+        "extraContentKey": "enclave_scout_patrol_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Escape (Agility ≥ 7)",
+        "target": "depot_gate",
+        "condition": "agility >= 7",
+        "extraContentKey": "enclave_scout_patrol_escape_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      },
+      {
+        "text": "Bluff (Charisma ≥ 8)",
+        "target": "depot_gate",
+        "condition": "charisma >= 8",
+        "extraContentKey": "enclave_scout_patrol_bluff_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      },
+      {
+        "text": "Get captured",
+        "target": "enclave_bunker",
+        "extraContentKey": "enclave_scout_patrol_capture_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": 0
+        }
+      }
+    ]
+  },
+  "enclave_bunker": {
+    "id": "enclave_bunker",
+    "section": "V. Second Hub",
+    "content": "[enclave_bunker] Enclave bunker.",
+    "contentKey": "enclave_bunker_text",
+    "imageKey": "enclave_bunker",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Escape with data (Intelligence ≥ 7)",
+        "target": "depot_gate",
+        "condition": "intelligence >= 7",
+        "extraContentKey": "enclave_bunker_escape_data_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1,
+          "clue": 2
+        }
+      },
+      {
+        "text": "Escape without data",
+        "target": "depot_gate",
+        "extraContentKey": "enclave_bunker_escape_no_data_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "deathclaw_cave": {
+    "id": "deathclaw_cave",
+    "section": "V. Second Hub",
+    "content": "[deathclaw_cave] A deathclaw blocks the shortcut.",
+    "contentKey": "deathclaw_cave_text",
+    "imageKey": "deathclaw_cave",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight the deathclaw",
+        "target": "depot_gate",
+        "extraContentKey": "deathclaw_cave_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -5,
+          "days": -1
+        }
+      },
+      {
+        "text": "Sneak past (Perception ≥ 7), takes 2 days",
+        "target": "depot_gate",
+        "condition": "perception >= 7",
+        "extraContentKey": "deathclaw_cave_sneak_perception_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -2
+        }
+      },
+      {
+        "text": "Sneak past (Agility ≥ 8), takes 2 days",
+        "target": "depot_gate",
+        "condition": "agility >= 8",
+        "extraContentKey": "deathclaw_cave_sneak_agility_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -2
+        }
+      },
+      {
+        "text": "Turn back",
+        "target": "crossroads_village",
+        "extraContentKey": "deathclaw_cave_turnback_text"
+      }
+    ]
+  },
+  "ghoul_doctor": {
+    "id": "ghoul_doctor",
+    "section": "V. Second Hub",
+    "content": "[ghoul_doctor] A ghoul doctor needs a mirelurk gland.",
+    "contentKey": "ghoul_doctor_text",
+    "imageKey": "ghoul_doctor",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Help",
+        "target": "mirelurk_lake"
+      },
+      {
+        "text": "Refuse",
+        "target": "crossroads_village"
+      }
+    ]
+  },
+  "mirelurk_lake": {
+    "id": "mirelurk_lake",
+    "section": "V. Second Hub",
+    "content": "[mirelurk_lake] A lake with a mirelurk.",
+    "contentKey": "mirelurk_lake_text",
+    "imageKey": "mirelurk_lake",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight the mirelurk",
+        "target": "crossroads_village",
+        "extraContentKey": "mirelurk_lake_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -3,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with strength (Strength ≥ 7)",
+        "target": "crossroads_village",
+        "condition": "strength >= 7",
+        "extraContentKey": "mirelurk_lake_fight_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Retrieve gland without fighting (Perception ≥ 6)",
+        "target": "crossroads_village",
+        "condition": "perception >= 6",
+        "extraContentKey": "mirelurk_lake_sneak_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Give up",
+        "target": "crossroads_village",
+        "extraContentKey": "mirelurk_lake_giveup_text"
+      }
+    ]
+  },
+  "depot_gate": {
+    "id": "depot_gate",
+    "section": "VI. Depot",
+    "content": "[depot_gate] The entrance to the military depot.",
+    "contentKey": "depot_gate_text",
+    "imageKey": "depot_gate",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Main entrance",
+        "target": "depot_robots"
+      },
+      {
+        "text": "Side entrance (Strength ≥ 7 or Perception ≥ 6)",
+        "target": "depot_armory",
+        "condition": "strength >= 7 or perception >= 6"
+      }
+    ]
+  },
+  "depot_robots": {
+    "id": "depot_robots",
+    "section": "VI. Depot",
+    "content": "[depot_robots] Security robots attack.",
+    "contentKey": "depot_robots_text",
+    "imageKey": "depot_robots",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight robots",
+        "target": "depot_lab",
+        "extraContentKey": "depot_robots_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -3,
+          "days": -1
+        }
+      },
+      {
+        "text": "Use perception to find a safe path (Perception ≥ 6)",
+        "target": "depot_lab",
+        "condition": "perception >= 6",
+        "extraContentKey": "depot_robots_perception_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      },
+      {
+        "text": "Reprogram (Intelligence ≥ 8)",
+        "target": "depot_lab",
+        "condition": "intelligence >= 8",
+        "extraContentKey": "depot_robots_reprogram_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "depot_armory": {
+    "id": "depot_armory",
+    "section": "VI. Depot",
+    "content": "[depot_armory] You find weapons and then proceed to the lab.",
+    "contentKey": "depot_armory_text",
+    "imageKey": "depot_armory",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Continue to lab",
+        "target": "depot_lab"
+      }
+    ]
+  },
+  "depot_lab": {
+    "id": "depot_lab",
+    "section": "VI. Depot",
+    "content": "[depot_lab] Pre-war lab. You find a holotape with evidence of the saboteur. (HP -2 gas, Perception ≥ 7 or Endurance ≥ 7 reduces to 0)",
+    "contentKey": "depot_lab_text",
+    "imageKey": "depot_lab",
+    "daysCost": 1,
+    "hpChange": -2,
+    "hpModifiers": [
+      {
+        "stat": "perception",
+        "min": 7,
+        "reduction": 2
+      },
+      {
+        "stat": "endurance",
+        "min": 7,
+        "reduction": 2
+      }
+    ],
+    "choices": [
+      {
+        "text": "Take the holotape and go to reactor",
+        "target": "depot_reactor",
+        "extraContentKey": "depot_lab_holotape_text",
+        "on_select": {
+          "action": "add_clue",
+          "clue_id": 3
+        }
+      },
+      {
+        "text": "Leave the holotape and go to reactor",
+        "target": "depot_reactor",
+        "extraContentKey": "depot_lab_leave_text"
+      }
+    ]
+  },
+  "depot_reactor": {
+    "id": "depot_reactor",
+    "section": "VI. Depot",
+    "content": "[depot_reactor] Gecko nest guarding the regulator.",
+    "contentKey": "depot_reactor_text",
+    "imageKey": "depot_reactor",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Fight geckos",
+        "target": "depot_escape",
+        "extraContentKey": "depot_reactor_fight_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -4,
+          "days": -1
+        }
+      },
+      {
+        "text": "Fight with strength (Strength ≥ 7)",
+        "target": "depot_escape",
+        "condition": "strength >= 7",
+        "extraContentKey": "depot_reactor_strong_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Lure them away (Agility ≥ 6)",
+        "target": "depot_escape",
+        "condition": "agility >= 6",
+        "extraContentKey": "depot_reactor_agile_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -1,
+          "days": -1
+        }
+      }
+    ]
+  },
+  "depot_escape": {
+    "id": "depot_escape",
+    "section": "VI. Depot",
+    "content": "[depot_escape] Enclave arrive!",
+    "contentKey": "depot_escape_text",
+    "imageKey": "depot_escape",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Escape",
+        "target": "return_road",
+        "extraContentKey": "depot_escape_escape_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": -2,
+          "days": -1
+        }
+      },
+      {
+        "text": "Escape with charisma (Charisma ≥ 7)",
+        "target": "return_road",
+        "condition": "charisma >= 7",
+        "extraContentKey": "depot_escape_charisma_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      },
+      {
+        "text": "Escape with agility (Agility ≥ 7)",
+        "target": "return_road",
+        "condition": "agility >= 7",
+        "extraContentKey": "depot_escape_agile_text",
+        "on_select": {
+          "action": "adjust",
+          "hp": 0,
+          "days": -1
+        }
+      },
+      {
+        "text": "Confront (requires Enclave data)",
+        "target": "depot_climax_alt",
+        "condition": "hasFlag:clue_2",
+        "extraContentKey": "depot_escape_confront_text"
+      }
+    ]
+  },
+  "depot_climax_alt": {
+    "id": "depot_climax_alt",
+    "section": "VI. Depot",
+    "content": "[depot_climax_alt] You use the Enclave data to negotiate your escape. The Enclave agents are impressed and let you go peacefully. You suffer no additional harm, and you gain valuable information about their operations.",
+    "contentKey": "depot_climax_alt_text",
+    "imageKey": "depot_climax_alt",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Leave",
+        "target": "return_road",
+        "on_select": {
+          "action": "set_flag",
+          "flag": "confronted_enclave",
+          "value": true
+        }
+      }
+    ]
+  },
+  "return_road": {
+    "id": "return_road",
+    "section": "VII. Return & Resolution",
+    "content": "[return_road] You travel back to Vault 5. (1 day passes)",
+    "contentKey": "return_road_text",
+    "imageKey": "return_road",
+    "daysCost": 1,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Enter the vault",
+        "target": "vault_reentry"
+      }
+    ]
+  },
+  "vault_reentry": {
+    "id": "vault_reentry",
+    "section": "VII. Return & Resolution",
+    "content": "[vault_reentry] You re-enter the vault. The saboteur must be identified.",
+    "contentKey": "vault_reentry_text",
+    "imageKey": "vault_reentry",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Proceed to trial",
+        "target": "trial_start"
+      }
+    ]
+  },
+  "trial_start": {
+    "id": "trial_start",
+    "section": "VII. Return & Resolution",
+    "content": "You stand before the vault council. The saboteur must be identified.",
+    "contentKey": "trial_start_text",
+    "imageKey": "trial_start",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Present the evidence",
+        "target": "determine_culprit",
+        "condition": "hasFlag:has_any_clue",
+        "extraContentKey": "trial_start_evidence_text"
+      },
+      {
+        "text": "Admit you have no proof",
+        "target": "determine_culprit",
+        "extraContentKey": "trial_start_no_evidence_text"
+      }
+    ]
+  },
+  "determine_culprit": {
+    "id": "determine_culprit",
+    "section": "VII. Return & Resolution",
+    "content": "",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isLogicNode": true,
+    "choices": []
+  },
+  "sentencing": {
+    "id": "sentencing",
+    "section": "VII. Return & Resolution",
+    "content": "The saboteur stands before you. What is your judgment?",
+    "contentKey": "sentencing_text",
+    "imageKey": "sentencing",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Show mercy (imprisonment)",
+        "target": "epilogue",
+        "on_select": {
+          "action": "set_sentence",
+          "sentence": "mercy"
+        }
+      },
+      {
+        "text": "Exile to the wasteland",
+        "target": "epilogue",
+        "on_select": {
+          "action": "set_sentence",
+          "sentence": "exile"
+        }
+      },
+      {
+        "text": "Execute",
+        "target": "epilogue",
+        "on_select": {
+          "action": "set_sentence",
+          "sentence": "execution"
+        }
+      }
+    ]
+  },
+  "epilogue": {
+    "id": "epilogue",
+    "section": "VII. Return & Resolution",
+    "content": "",
+    "daysCost": 0,
+    "hpChange": 0,
+    "isDynamic": true,
+    "choices": []
+  },
+  "game_over_death": {
+    "id": "game_over_death",
+    "section": "Game Over",
+    "content": "💀 You have died. The wasteland claims another soul. Game over. 💀",
+    "contentKey": "game_over_death_text",
+    "imageKey": "game_over_death",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Restart",
+        "target": "RESTART"
+      }
+    ]
+  },
+  "game_over_time": {
+    "id": "game_over_time",
+    "section": "Game Over",
+    "content": "⏰ Time runs out. Vault 5 falls silent. Everyone asphyxiates. Game over. ⏰",
+    "contentKey": "game_over_time_text",
+    "imageKey": "game_over_time",
+    "daysCost": 0,
+    "hpChange": 0,
+    "choices": [
+      {
+        "text": "Restart",
+        "target": "RESTART"
+      }
+    ]
+  }
+}
