@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vault 5 – Automated Tests</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+    <h1>🧪 VAULT 5 – AUTOMATED TESTS</h1>
+    <button id="run-tests">▶ Run Tests</button>
+    <pre id="output">Click "Run Tests" to start.</pre>
+</div>
+
+<script>
+    const output = document.getElementById('output');
+    function log(msg) {
+        output.innerText += msg + '\n';
+        console.log(msg);
+    }
+    function clearLog() {
+        output.innerText = '';
+    }
+
+    async function fetchJSON(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+        return res.json();
+    }
+
+    // Game logic (copied from game.js)
+    let gameState = {
+        hp: 10,
+        maxHp: 10,
+        daysLeft: 15,
+        flags: {},
+        special: { strength: 5, perception: 5, endurance: 5, charisma: 5, intelligence: 5, agility: 5, luck: 5 }
+    };
+
+    function evaluateCondition(condition) {
+        if (!condition) return true;
+        if (condition.startsWith("hasFlag:")) return !!gameState.flags[condition.substring(8)];
+        if (condition.startsWith("notHasFlag:")) return !gameState.flags[condition.substring(11)];
+        if (condition.includes(" or ")) return condition.split(" or ").some(part => evalStatCondition(part.trim()));
+        return evalStatCondition(condition);
+    }
+
+    function evalStatCondition(expr) {
+        const parts = expr.split(/\s+/);
+        if (parts.length !== 3) return true;
+        const [stat, op, valStr] = parts;
+        const val = parseInt(valStr, 10);
+        const statValue = gameState.special[stat];
+        if (isNaN(val) || statValue === undefined) return true;
+        if (op === ">=") return statValue >= val;
+        if (op === "<=") return statValue <= val;
+        if (op === ">")  return statValue > val;
+        if (op === "<")  return statValue < val;
+        if (op === "==") return statValue === val;
+        return true;
+    }
+
+    function addClue(clueId) {
+        gameState.flags.cluesFound = (gameState.flags.cluesFound || 0) + 1;
+        gameState.flags[`clue_${clueId}`] = true;
+        if (gameState.flags.cluesFound === 1) gameState.flags.has_any_clue = true;
+    }
+
+    function applyChoiceAction(choice) {
+        const sel = choice.on_select;
+        if (!sel) return false;
+        switch (sel.action) {
+            case "add_clue": addClue(sel.clue_id); return false;
+            case "set_flag": gameState.flags[sel.flag] = sel.value; return false;
+            case "set_sentence": gameState.flags.sentence = sel.sentence; return false;
+            case "rest":
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + sel.hpGain);
+                gameState.daysLeft -= sel.daysCost;
+                return true;
+            case "train":
+                gameState.special[sel.stat1] += 1;
+                gameState.special[sel.stat2] += 1;
+                gameState.daysLeft -= sel.daysCost;
+                return true;
+            case "adjust":
+                if (sel.hp) gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + sel.hp));
+                if (sel.days) gameState.daysLeft += sel.days;
+                if (sel.clue) addClue(sel.clue);
+                if (sel.stat_bonus) gameState.special[sel.stat_bonus] += sel.stat_bonus_value;
+                if (sel.set_flag) gameState.flags[sel.set_flag] = true;
+                return false;
+            default: return false;
+        }
+    }
+
+    function applyNodeEffects(node) {
+        let hpDelta = node.hpChange || 0;
+        if (hpDelta < 0 && node.hpModifiers && Array.isArray(node.hpModifiers)) {
+            for (const mod of node.hpModifiers) {
+                if (gameState.special[mod.stat] >= mod.min) hpDelta += mod.reduction;
+            }
+            if (hpDelta > 0) hpDelta = 0;
+        }
+        gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + hpDelta));
+        if (node.daysCost) gameState.daysLeft -= node.daysCost;
+    }
+
+    function resetGameState() {
+        gameState = {
+            hp: 10,
+            maxHp: 10,
+            daysLeft: 15,
+            flags: {},
+            special: { strength: 5, perception: 5, endurance: 5, charisma: 5, intelligence: 5, agility: 5, luck: 5 }
+        };
+    }
+
+    async function runTests() {
+        clearLog();
+        log('🔍 Loading story.json and detailed_story.json...');
+        let storyData, textMap;
+        try {
+            [storyData, textMap] = await Promise.all([
+                fetchJSON('story.json'),
+                fetchJSON('detailed_story.json').catch(() => ({}))
+            ]);
+            log(`✅ story.json loaded (${Object.keys(storyData).length} nodes).`);
+            if (Object.keys(textMap).length) log(`✅ detailed_story.json loaded (${Object.keys(textMap).length} keys).`);
+            else log('⚠️ detailed_story.json not found – skipping contentKey checks.');
+        } catch (err) {
+            log(`❌ Failed to load JSON: ${err.message}`);
+            log('Make sure you are running this page through a local web server (same as the game).');
+            return;
+        }
+
+        // Test 1: valid targets
+        log('\n--- Test 1: Valid node targets ---');
+        let missingTargets = [];
+        for (const [nodeId, node] of Object.entries(storyData)) {
+            if (node.choices && Array.isArray(node.choices)) {
+                node.choices.forEach(choice => {
+                    const target = choice.target;
+                    if (target && target !== 'RESTART' && !storyData[target]) {
+                        missingTargets.push(`Node "${nodeId}" → missing target "${target}"`);
+                    }
+                });
+            }
+        }
+        if (missingTargets.length === 0) log('✅ All node targets are valid.');
+        else { log('❌ Found missing targets:'); missingTargets.forEach(e => log(`   ${e}`)); }
+
+        // Test 2: contentKey references
+        if (Object.keys(textMap).length) {
+            log('\n--- Test 2: contentKey references ---');
+            let missingKeys = [];
+            for (const [nodeId, node] of Object.entries(storyData)) {
+                if (node.contentKey && !textMap[node.contentKey]) missingKeys.push(`Node "${nodeId}" references missing contentKey "${node.contentKey}"`);
+                if (node.choices) {
+                    node.choices.forEach(choice => {
+                        if (choice.extraContentKey && !textMap[choice.extraContentKey]) {
+                            missingKeys.push(`Choice in node "${nodeId}" references missing extraContentKey "${choice.extraContentKey}"`);
+                        }
+                    });
+                }
+            }
+            if (missingKeys.length === 0) log('✅ All contentKey references are valid.');
+            else { log('❌ Missing contentKey references:'); missingKeys.forEach(e => log(`   ${e}`)); }
+        } else {
+            log('\n--- Test 2: Skipped (detailed_story.json not loaded) ---');
+        }
+
+        // Test 3: condition evaluation
+        log('\n--- Test 3: Condition evaluation ---');
+        resetGameState();
+        gameState.special = { strength: 7, agility: 5, perception: 8, endurance: 5, charisma: 5, intelligence: 5, luck: 5 };
+        gameState.flags = { testFlag: true };
+        const condTests = [
+            { cond: 'strength >= 6', expected: true, desc: 'strength >= 6' },
+            { cond: 'agility >= 6', expected: false, desc: 'agility >= 6' },
+            { cond: 'perception >= 7 or agility >= 6', expected: true, desc: 'or condition' },
+            { cond: 'hasFlag:testFlag', expected: true, desc: 'hasFlag true' },
+            { cond: 'hasFlag:missing', expected: false, desc: 'hasFlag false' },
+            { cond: 'notHasFlag:missing', expected: true, desc: 'notHasFlag true' },
+            { cond: 'notHasFlag:testFlag', expected: false, desc: 'notHasFlag false' }
+        ];
+        let allCondPass = true;
+        for (const t of condTests) {
+            const result = evaluateCondition(t.cond);
+            const ok = (result === t.expected);
+            if (ok) log(`✅ ${t.desc} → ${result}`);
+            else { log(`❌ ${t.desc} → expected ${t.expected}, got ${result}`); allCondPass = false; }
+        }
+        if (allCondPass) log('✅ All condition tests passed.');
+
+        // Test 4: node effects with modifiers
+        log('\n--- Test 4: Node effects (HP modifiers) ---');
+        resetGameState();
+        gameState.hp = 10;
+        gameState.maxHp = 10;
+        gameState.special.endurance = 5;
+        const node = { hpChange: -2, hpModifiers: [{ stat: 'endurance', min: 6, reduction: 1 }] };
+        applyNodeEffects(node);
+        if (gameState.hp === 8) log('✅ HP reduction without bonus → 8 (correct)');
+        else log(`❌ HP reduction without bonus → expected 8, got ${gameState.hp}`);
+        resetGameState();
+        gameState.hp = 10;
+        gameState.special.endurance = 6;
+        applyNodeEffects(node);
+        if (gameState.hp === 9) log('✅ HP reduction with endurance bonus → 9 (correct)');
+        else log(`❌ HP reduction with bonus → expected 9, got ${gameState.hp}`);
+
+        // Test 5: choice actions
+        log('\n--- Test 5: Choice actions ---');
+        resetGameState();
+        gameState.hp = 10;
+        gameState.daysLeft = 15;
+        const adjChoice = { on_select: { action: 'adjust', hp: -3, days: -2 } };
+        applyChoiceAction(adjChoice);
+        if (gameState.hp === 7 && gameState.daysLeft === 13) log('✅ adjust action: HP -3, days -2 → correct');
+        else log(`❌ adjust action: HP=${gameState.hp} (expected 7), days=${gameState.daysLeft} (expected 13)`);
+        resetGameState();
+        const clueChoice = { on_select: { action: 'add_clue', clue_id: 9 } };
+        applyChoiceAction(clueChoice);
+        if (gameState.flags.cluesFound === 1 && gameState.flags.clue_9 === true) log('✅ add_clue action works');
+        else log('❌ add_clue action failed');
+        resetGameState();
+        const flagChoice = { on_select: { action: 'set_flag', flag: 'test', value: true } };
+        applyChoiceAction(flagChoice);
+        if (gameState.flags.test === true) log('✅ set_flag action works');
+        else log('❌ set_flag action failed');
+
+        // Test 6: starting node exists
+        log('\n--- Test 6: Starting node ---');
+        const startNode = 'vault_start';
+        if (storyData[startNode]) log(`✅ Starting node "${startNode}" exists in story.json.`);
+        else log(`❌ Starting node "${startNode}" is missing from story.json.`);
+
+        log('\n' + '='.repeat(60));
+        log('🏁 Test suite completed.');
+        log('If you see any ❌, please fix the corresponding issue.');
+    }
+
+    document.getElementById('run-tests').addEventListener('click', () => {
+        runTests().catch(err => {
+            log(`\n❌ Fatal error: ${err.message}`);
+            console.error(err);
+        });
+    });
+</script>
+</body>
+</html>

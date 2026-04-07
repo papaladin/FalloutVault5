@@ -1,644 +1,419 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>VAULT-5 // STORY MAP (with sections)</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #040c04;
-  --panel: #081008;
-  --border: #1a4d1a;
-  --green: #39ff14;
-  --green-dim: #0f5a06;
-  --amber: #ffb300;
-  --text: #9ddd9d;
-  --text-dim: #3a6b3a;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Share Tech Mono', monospace;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 4px);
-  pointer-events: none;
-  z-index: 900;
-}
-
-#toolbar {
-  background: var(--panel);
-  border-bottom: 2px solid var(--border);
-  padding: 8px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  min-height: 50px;
-  flex-shrink: 0;
-}
-
-#title {
-  font-family: 'VT323', monospace;
-  font-size: 24px;
-  color: var(--green);
-  text-shadow: 0 0 12px var(--green), 0 0 25px rgba(57,255,20,0.3);
-  letter-spacing: 3px;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.sep { color: var(--border); font-size: 18px; }
-
-.file-label {
-  cursor: pointer;
-  border: 1px solid var(--green);
-  color: var(--green);
-  padding: 5px 14px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
-  background: transparent;
-  transition: all 0.15s;
-  white-space: nowrap;
-  letter-spacing: 1px;
-}
-.file-label:hover {
-  background: var(--green);
-  color: #000;
-  box-shadow: 0 0 14px rgba(57,255,20,0.5);
-}
-#file-input { display: none; }
-
-#status {
-  font-size: 11px;
-  color: var(--text-dim);
-  flex: 1;
-  min-width: 160px;
-}
-#status .ok  { color: var(--green); }
-#status .err { color: #ff4444; }
-
-#legend {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.leg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
-.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-#controls { display: flex; gap: 6px; }
-.ctrl-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: 1px;
-}
-.ctrl-btn:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 8px rgba(57,255,20,0.2); }
-
-#svg-wrap {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  cursor: grab;
-}
-#svg-wrap:active { cursor: grabbing; }
-
-svg { width: 100%; height: 100%; display: block; }
-
-.node-rect {
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-.node-g:hover .node-rect { filter: brightness(1.35) drop-shadow(0 0 6px currentColor); }
-.node-label {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 7.5px;
-  fill: rgba(0,0,0,0.85);
-  pointer-events: none;
-  dominant-baseline: middle;
-  text-anchor: middle;
-  font-weight: bold;
-  letter-spacing: 0.3px;
-}
-.node-icon {
-  font-size: 9px;
-  fill: rgba(0,0,0,0.6);
-  pointer-events: none;
-  dominant-baseline: middle;
-  text-anchor: middle;
-}
-
-.edge { fill: none; stroke-width: 1.3; }
-.edge-cond { stroke-dasharray: 5,3; }
-
-.band-label {
-  font-family: 'VT323', monospace;
-  font-size: 12px;
-  dominant-baseline: middle;
-  pointer-events: none;
-  letter-spacing: 2px;
-  opacity: 0.35;
-}
-
-#placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  pointer-events: none;
-}
-#placeholder .big {
-  font-family: 'VT323', monospace;
-  font-size: 32px;
-  color: var(--border);
-  text-shadow: 0 0 8px var(--green-dim);
-  letter-spacing: 4px;
-  animation: blink 2s step-end infinite;
-}
-#placeholder .small { font-size: 11px; color: var(--text-dim); }
-@keyframes blink { 50% { opacity: 0.3; } }
-
-#tooltip {
-  position: fixed;
-  background: rgba(4,12,4,0.97);
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--green);
-  padding: 10px 14px;
-  font-size: 11px;
-  max-width: 310px;
-  pointer-events: none;
-  display: none;
-  z-index: 950;
-  line-height: 1.7;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 40px rgba(57,255,20,0.02);
-}
-.tt-id { font-size: 14px; font-family: 'VT323', monospace; letter-spacing: 2px; margin-bottom: 4px; }
-.tt-content { color: #7aaa7a; font-size: 10px; line-height: 1.6; }
-.tt-meta { margin-top: 6px; font-size: 10px; color: var(--text-dim); }
-.tt-tag { display: inline-block; margin-right: 8px; }
-.tt-warn { color: var(--amber); }
-.tt-special { color: #00e5ff; }
-
-.edge-hint {
-  font-size: 7px;
-  fill: var(--text-dim);
-  pointer-events: none;
-  dominant-baseline: middle;
-  text-anchor: middle;
-}
-</style>
+    <meta charset="UTF-8">
+    <title>VAULT-5 // STORY MAP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
-
+<body class="map-viewer">
 <div id="toolbar">
-  <div id="title">VAULT-5 // STORY MAP (with sections)</div>
-  <span class="sep">|</span>
-  <label class="file-label" for="file-input">[ LOAD story.json ]</label>
-  <input type="file" id="file-input" accept=".json">
-  <div id="status">Awaiting story.json file&hellip;</div>
-  <div id="legend"></div>
-  <div id="controls">
-    <button class="ctrl-btn" id="btn-fit">[ FIT VIEW ]</button>
-  </div>
+    <div id="title">VAULT-5 // STORY MAP</div>
+    <span class="sep">|</span>
+    <label class="file-label" for="file-input">[ LOAD story.json ]</label>
+    <input type="file" id="file-input" accept=".json" style="display: none;">
+    <div id="status">Awaiting story.json file&hellip;</div>
+    <div id="legend"></div>
+    <div id="controls">
+        <button class="ctrl-btn" id="btn-fit">[ FIT VIEW ]</button>
+    </div>
 </div>
 
 <div id="svg-wrap">
-  <div id="placeholder">
-    <div class="big">// AWAITING JSON //</div>
-    <div class="small">Load your story.json to generate the node map</div>
-  </div>
-  <svg id="graph"></svg>
+    <div id="placeholder">
+        <div class="big">// AWAITING JSON //</div>
+        <div class="small">Load your story.json to generate the node map</div>
+    </div>
+    <svg id="graph"></svg>
 </div>
 <div id="tooltip"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
-let sim = null;
-let selectedNodeId = null;
-let nodeGroups = null;
-let edgePaths = null;
-let adjMap = null;
+    let sim = null;
+    let selectedNodeId = null;
+    let nodeGroups = null;
+    let edgePaths = null;
+    let adjMap = null;
 
-// Color palette for sections (same as before)
-const SECTION_PALETTE = [
-  '#39ff14', // I. Vault
-  '#00e5ff', // II. Ruined Town
-  '#fff176', // III. First Hub
-  '#ffb300', // IV. Wasteland Junction
-  '#ff6b6b', // V. Second Hub
-  '#ce93d8', // VI. Depot
-  '#80cbc4', // VII. Return & Resolution
-  '#546e7a'  // Game Over
-];
-
-function getSectionColor(sectionName) {
-  if (!sectionName) return '#546e7a';
-  if (sectionName.includes('Vault')) return SECTION_PALETTE[0];
-  if (sectionName.includes('Ruined')) return SECTION_PALETTE[1];
-  if (sectionName.includes('First')) return SECTION_PALETTE[2];
-  if (sectionName.includes('Wasteland')) return SECTION_PALETTE[3];
-  if (sectionName.includes('Second')) return SECTION_PALETTE[4];
-  if (sectionName.includes('Depot')) return SECTION_PALETTE[5];
-  if (sectionName.includes('Return')) return SECTION_PALETTE[6];
-  if (sectionName.includes('Game Over')) return SECTION_PALETTE[7];
-  return '#546e7a';
-}
-
-// Rect edge intersection
-function rectEdge(sx, sy, tx, ty, hw, hh) {
-  const dx = tx - sx, dy = ty - sy;
-  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return [tx, ty];
-  const scaleX = dx !== 0 ? hw / Math.abs(dx) : Infinity;
-  const scaleY = dy !== 0 ? hh / Math.abs(dy) : Infinity;
-  const scale = Math.min(scaleX, scaleY);
-  return [tx - dx * scale, ty - dy * scale];
-}
-function rectEdgeFrom(sx, sy, tx, ty, hw, hh) {
-  return rectEdge(tx, ty, sx, sy, hw, hh);
-}
-
-function computeLevels(nodes, edges) {
-  const adj = {};
-  for (const n of nodes) adj[n.id] = [];
-  for (const e of edges) {
-    if (adj[e.from] && !adj[e.from].includes(e.to)) adj[e.from].push(e.to);
-    if (adj[e.to] && !adj[e.to].includes(e.from)) adj[e.to].push(e.from);
-  }
-  let startId = nodes.find(n => n.id === 'vault_start')?.id || nodes[0]?.id;
-  if (!startId) return {};
-  const levels = {};
-  const queue = [startId];
-  levels[startId] = 0;
-  while (queue.length) {
-    const cur = queue.shift();
-    for (const nxt of (adj[cur] || [])) {
-      if (levels[nxt] === undefined) {
-        levels[nxt] = levels[cur] + 1;
-        queue.push(nxt);
-      }
+    const SECTION_PALETTE = [
+        '#39ff14', '#00e5ff', '#fff176', '#ffb300', '#ff6b6b', '#ce93d8', '#80cbc4', '#546e7a'
+    ];
+    function getSectionColor(sectionName) {
+        if (!sectionName) return '#546e7a';
+        if (sectionName.includes('Vault')) return SECTION_PALETTE[0];
+        if (sectionName.includes('Ruined')) return SECTION_PALETTE[1];
+        if (sectionName.includes('First')) return SECTION_PALETTE[2];
+        if (sectionName.includes('Wasteland')) return SECTION_PALETTE[3];
+        if (sectionName.includes('Second')) return SECTION_PALETTE[4];
+        if (sectionName.includes('Depot')) return SECTION_PALETTE[5];
+        if (sectionName.includes('Return')) return SECTION_PALETTE[6];
+        if (sectionName.includes('Game Over')) return SECTION_PALETTE[7];
+        return '#546e7a';
     }
-  }
-  let maxLevel = Math.max(0, ...Object.values(levels));
-  for (const n of nodes) {
-    if (levels[n.id] === undefined) levels[n.id] = maxLevel + 1;
-  }
-  return levels;
-}
 
-function renderGraph(storyData) {
-  if (sim) { sim.stop(); sim = null; }
-  const svg = d3.select('#graph');
-  svg.selectAll('*').remove();
-  document.getElementById('placeholder').style.display = 'none';
-
-  const W = document.getElementById('svg-wrap').offsetWidth;
-  const H = document.getElementById('svg-wrap').offsetHeight;
-
-  // Build node list
-  const nodes = Object.values(storyData).map(n => ({
-    id: n.id,
-    section: n.section || 'Unknown',
-    content: n.content || '',
-    isLogic: !!n.isLogicNode,
-    isDynamic: !!n.isDynamic,
-    isGameOver: n.id.startsWith('game_over'),
-    daysCost: n.daysCost ?? 0,
-    hpChange: n.hpChange ?? 0,
-    choiceCount: (n.choices || []).length,
-    hasLoop: false
-  }));
-
-  // Build edges
-  const rawEdges = [];
-  for (const node of Object.values(storyData)) {
-    for (const ch of (node.choices || [])) {
-      if (!ch.target || ch.target === 'RESTART') continue;
-      if (ch.target === node.id) continue;
-      rawEdges.push({
-        from: node.id,
-        to: ch.target,
-        text: ch.text || '',
-        conditional: !!ch.condition,
-      });
+    function rectEdge(sx, sy, tx, ty, hw, hh) {
+        const dx = tx - sx, dy = ty - sy;
+        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return [tx, ty];
+        const scaleX = dx !== 0 ? hw / Math.abs(dx) : Infinity;
+        const scaleY = dy !== 0 ? hh / Math.abs(dy) : Infinity;
+        const scale = Math.min(scaleX, scaleY);
+        return [tx - dx * scale, ty - dy * scale];
     }
-  }
-
-  // Adjacency for highlighting
-  adjMap = new Map();
-  for (const e of rawEdges) {
-    if (!adjMap.has(e.from)) adjMap.set(e.from, new Set());
-    if (!adjMap.has(e.to)) adjMap.set(e.to, new Set());
-    adjMap.get(e.from).add(e.to);
-    adjMap.get(e.to).add(e.from);
-  }
-
-  const levels = computeLevels(nodes, rawEdges);
-  const maxLevel = Math.max(...Object.values(levels));
-  const byLevel = {};
-  for (const n of nodes) {
-    const l = levels[n.id];
-    n.level = l;
-    if (!byLevel[l]) byLevel[l] = [];
-    byLevel[l].push(n);
-  }
-
-  const PAD_X = 80, PAD_Y = 55;
-  const levelH = (H - PAD_Y * 2) / (maxLevel + 1);
-  for (const [lStr, ns] of Object.entries(byLevel)) {
-    const l = parseInt(lStr);
-    const gap = (W - PAD_X * 2) / (ns.length + 1);
-    ns.forEach((n, i) => {
-      n.x = PAD_X + gap * (i + 1);
-      n.y = PAD_Y + l * levelH;
-    });
-  }
-
-  const NW = 92, NH = 22;
-  const defs = svg.append('defs');
-  function mkArrow(id, color) {
-    defs.append('marker')
-      .attr('id', id)
-      .attr('viewBox', '0 -4 8 8')
-      .attr('refX', 7).attr('refY', 0)
-      .attr('markerWidth', 5).attr('markerHeight', 5)
-      .attr('orient', 'auto')
-      .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', color);
-  }
-  mkArrow('arr', '#2d6e2d');
-  mkArrow('arr-cond', '#ffb300');
-
-  const root = svg.append('g').attr('id', 'root');
-  const zoomBehavior = d3.zoom().scaleExtent([0.08, 5])
-    .on('zoom', e => root.attr('transform', e.transform));
-  svg.call(zoomBehavior);
-
-  // Section bands (based on node levels)
-  const bandG = root.append('g');
-  const sectionLevels = {};
-  for (const n of nodes) {
-    const sec = n.section;
-    if (!sectionLevels[sec]) sectionLevels[sec] = { min: Infinity, max: -Infinity };
-    sectionLevels[sec].min = Math.min(sectionLevels[sec].min, n.level);
-    sectionLevels[sec].max = Math.max(sectionLevels[sec].max, n.level);
-  }
-  const BW = W * 4;
-  for (const [sec, info] of Object.entries(sectionLevels)) {
-    const y1 = PAD_Y + info.min * levelH - levelH * 0.52;
-    const y2 = PAD_Y + info.max * levelH + levelH * 0.52;
-    const col = getSectionColor(sec);
-    bandG.append('rect')
-      .attr('x', -BW/2).attr('y', y1)
-      .attr('width', BW).attr('height', y2 - y1)
-      .attr('fill', col).attr('opacity', 0.028);
-    bandG.append('line')
-      .attr('x1', -BW/2).attr('x2', BW/2)
-      .attr('y1', y1).attr('y2', y1)
-      .attr('stroke', col).attr('stroke-width', 0.5).attr('opacity', 0.18);
-    bandG.append('text')
-      .attr('class', 'band-label')
-      .attr('x', 12).attr('y', (y1 + y2) / 2)
-      .attr('fill', col).attr('font-size', 11)
-      .attr('font-family', '"VT323", monospace')
-      .text('// ' + sec.toUpperCase());
-  }
-
-  const edgeLayer = root.append('g');
-  const nodeLayer = root.append('g');
-
-  const links = rawEdges.map(e => ({
-    ...e,
-    fromId: e.from,
-    toId: e.to,
-    source: e.from,
-    target: e.to
-  }));
-
-  edgePaths = edgeLayer.selectAll('path')
-    .data(links)
-    .join('path')
-    .attr('class', d => 'edge' + (d.conditional ? ' edge-cond' : ''))
-    .attr('stroke', d => d.conditional ? '#ffb300' : '#2d6e2d')
-    .attr('stroke-width', d => d.conditional ? 1.5 : 1.3)
-    .attr('stroke-dasharray', d => d.conditional ? '5,3' : null)
-    .attr('fill', 'none')
-    .attr('opacity', 0.65)
-    .attr('marker-end', d => d.conditional ? 'url(#arr-cond)' : 'url(#arr)');
-
-  nodeGroups = nodeLayer.selectAll('g')
-    .data(nodes)
-    .join('g')
-    .attr('class', 'node-g')
-    .call(d3.drag()
-      .on('start', (ev, d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag',  (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
-      .on('end',   (ev, d) => { if (!ev.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
-    )
-    .on('mouseover', (ev, d) => showTT(ev, d))
-    .on('mousemove', ev => moveTT(ev))
-    .on('mouseout', hideTT)
-    .on('click', (ev, d) => {
-      if (selectedNodeId === d.id) {
-        selectedNodeId = null;
-      } else {
-        selectedNodeId = d.id;
-      }
-      updateHighlight();
-    });
-
-  nodeGroups.append('rect')
-    .attr('class', 'node-rect')
-    .attr('width', NW).attr('height', NH)
-    .attr('x', -NW/2).attr('y', -NH/2)
-    .attr('rx', 2)
-    .attr('fill', d => getSectionColor(d.section))
-    .attr('stroke', d => {
-      if (d.isGameOver) return '#cc2222';
-      if (d.isLogic)    return '#ffff00';
-      if (d.isDynamic)  return '#00ff88';
-      return 'rgba(0,0,0,0.5)';
-    })
-    .attr('stroke-width', d => (d.isLogic || d.isDynamic || d.isGameOver) ? 2 : 1)
-    .attr('fill-opacity', 0.88);
-
-  nodeGroups.append('text')
-    .attr('class', 'node-label')
-    .attr('dy', '0.1em')
-    .text(d => d.id.length <= 14 ? d.id : d.id.substring(0, 13) + '…');
-
-  nodeGroups.filter(d => d.daysCost > 0 || d.hpChange < 0)
-    .append('text')
-    .attr('class', 'node-icon')
-    .attr('x', NW/2 - 7)
-    .attr('y', -NH/2 + 6)
-    .attr('font-size', '7px')
-    .attr('fill', '#000')
-    .attr('opacity', 0.5)
-    .attr('text-anchor', 'end')
-    .attr('dominant-baseline', 'hanging')
-    .text(d => {
-      let s = '';
-      if (d.daysCost > 0) s += '⏱';
-      if (d.hpChange < 0) s += '♥';
-      return s;
-    });
-
-  sim = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id).distance(75).strength(0.18))
-    .force('charge', d3.forceManyBody().strength(-220))
-    .force('x', d3.forceX(d => d.x).strength(0.1))
-    .force('y', d3.forceY(d => d.y).strength(0.92))
-    .force('collide', d3.forceCollide(52))
-    .alphaDecay(0.018)
-    .on('tick', tick);
-
-  links.forEach(l => {
-    l._bend = (Math.random() > 0.5 ? 1 : -1);
-  });
-
-  function edgePathStable(d) {
-    const sx = d.source.x ?? 0, sy = d.source.y ?? 0;
-    const tx = d.target.x ?? 0, ty = d.target.y ?? 0;
-    const [x1, y1] = rectEdgeFrom(sx, sy, tx, ty, NW/2, NH/2);
-    const [x2, y2] = rectEdge(sx, sy, tx, ty, NW/2 + 2, NH/2 + 2);
-    const dx = tx - sx, dy = ty - sy;
-    const len = Math.sqrt(dx*dx + dy*dy) || 1;
-    const bend = Math.min(28, len * 0.15) * d._bend;
-    const mx = (x1 + x2) / 2 + (dy / len) * bend;
-    const my = (y1 + y2) / 2 - (dx / len) * bend;
-    return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
-  }
-
-  function tick() {
-    edgePaths.attr('d', edgePathStable);
-    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
-  }
-
-  function updateHighlight() {
-    if (!selectedNodeId) {
-      nodeGroups.attr('opacity', 1);
-      edgePaths.attr('opacity', 0.65);
-      return;
+    function rectEdgeFrom(sx, sy, tx, ty, hw, hh) {
+        return rectEdge(tx, ty, sx, sy, hw, hh);
     }
-    const neighbors = adjMap.get(selectedNodeId) || new Set();
-    neighbors.add(selectedNodeId);
-    nodeGroups.attr('opacity', d => neighbors.has(d.id) ? 1 : 0.2);
-    edgePaths.attr('opacity', d => {
-      const src = d.fromId, tgt = d.toId;
-      return (neighbors.has(src) && neighbors.has(tgt)) ? 0.8 : 0.1;
-    });
-  }
-  updateHighlight();
 
-  // Legend (section colours)
-  const legendDiv = document.getElementById('legend');
-  legendDiv.innerHTML = '';
-  const sections = [...new Set(nodes.map(n => n.section))].sort();
-  for (const sec of sections) {
-    const el = document.createElement('div');
-    el.className = 'leg';
-    el.innerHTML = `<div class="leg-dot" style="background:${getSectionColor(sec)}"></div><span>${sec}</span>`;
-    legendDiv.appendChild(el);
-  }
-  const ce = document.createElement('div');
-  ce.className = 'leg';
-  ce.innerHTML = `<div class="leg-dot" style="background:#ffb300;border-radius:0"></div><span>Conditional path</span>`;
-  legendDiv.appendChild(ce);
-  const le = document.createElement('div');
-  le.className = 'leg';
-  le.innerHTML = `<span style="font-size:11px;margin-right:4px;opacity:0.7">⏱/♥</span><span>Days/HP cost on node</span>`;
-  legendDiv.appendChild(le);
-
-  const cond = rawEdges.filter(e => e.conditional).length;
-  document.getElementById('status').innerHTML =
-    `<span class="ok">✓</span> ${nodes.length} nodes &middot; ${rawEdges.length} paths &middot; ${cond} conditional`;
-
-  setTimeout(fitView, 1400);
-  document.getElementById('btn-fit').onclick = fitView;
-
-  function fitView() {
-    try {
-      const bbox = root.node().getBBox();
-      if (!bbox.width || !bbox.height) return;
-      const pad = 48;
-      const scaleX = W / (bbox.width + pad * 2);
-      const scaleY = H / (bbox.height + pad * 2);
-      const scale = Math.min(scaleX, scaleY, 2);
-      const tx = W / 2 - scale * (bbox.x + bbox.width / 2);
-      const ty = H / 2 - scale * (bbox.y + bbox.height / 2);
-      svg.transition().duration(600)
-        .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
-    } catch(e) {}
-  }
-}
-
-// Tooltip
-function showTT(ev, d) {
-  const tt = document.getElementById('tooltip');
-  const col = getSectionColor(d.section);
-  let html = `<div class="tt-id" style="color:${col};text-shadow:0 0 8px ${col}">${d.id}</div>`;
-  const preview = (d.content || '').substring(0, 160) + ((d.content || '').length > 160 ? '…' : '');
-  html += `<div class="tt-content">${preview || '(no summary)'}</div>`;
-  const tags = [];
-  if (d.daysCost > 0) tags.push(`<span class="tt-tag tt-warn">⏱ -${d.daysCost} day${d.daysCost > 1 ? 's' : ''}</span>`);
-  if (d.hpChange < 0) tags.push(`<span class="tt-tag tt-warn">❤ ${d.hpChange} HP</span>`);
-  if (d.choiceCount > 0) tags.push(`<span class="tt-tag">${d.choiceCount} choice${d.choiceCount > 1 ? 's' : ''}</span>`);
-  if (d.isLogic) tags.push(`<span class="tt-tag tt-special">⚙ Logic node</span>`);
-  if (d.isDynamic) tags.push(`<span class="tt-tag tt-special">✦ Dynamic</span>`);
-  if (d.isGameOver) tags.push(`<span class="tt-tag" style="color:#ff4444">💀 Game Over</span>`);
-  if (tags.length) html += `<div class="tt-meta">${tags.join('')}</div>`;
-  tt.innerHTML = html;
-  tt.style.display = 'block';
-  moveTT(ev);
-}
-function moveTT(ev) {
-  const tt = document.getElementById('tooltip');
-  let x = ev.clientX + 16, y = ev.clientY + 12;
-  if (x + 320 > window.innerWidth)  x = ev.clientX - 326;
-  if (y + 200 > window.innerHeight) y = ev.clientY - 210;
-  tt.style.left = x + 'px';
-  tt.style.top  = y + 'px';
-}
-function hideTT() {
-  document.getElementById('tooltip').style.display = 'none';
-}
-
-// File load
-document.getElementById('file-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('status').innerHTML = 'Loading…';
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const storyData = JSON.parse(ev.target.result);
-      renderGraph(storyData);
-    } catch (err) {
-      document.getElementById('status').innerHTML = `<span class="err">✗ Invalid JSON: ${err.message}</span>`;
-      console.error(err);
+    function computeLevels(nodes, edges) {
+        const adj = {};
+        for (const n of nodes) adj[n.id] = [];
+        for (const e of edges) {
+            if (adj[e.from] && !adj[e.from].includes(e.to)) adj[e.from].push(e.to);
+            if (adj[e.to] && !adj[e.to].includes(e.from)) adj[e.to].push(e.from);
+        }
+        let startId = nodes.find(n => n.id === 'vault_start')?.id || nodes[0]?.id;
+        if (!startId) return {};
+        const levels = {};
+        const queue = [startId];
+        levels[startId] = 0;
+        while (queue.length) {
+            const cur = queue.shift();
+            for (const nxt of (adj[cur] || [])) {
+                if (levels[nxt] === undefined) {
+                    levels[nxt] = levels[cur] + 1;
+                    queue.push(nxt);
+                }
+            }
+        }
+        let maxLevel = Math.max(0, ...Object.values(levels));
+        for (const n of nodes) {
+            if (levels[n.id] === undefined) levels[n.id] = maxLevel + 1;
+        }
+        return levels;
     }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
+
+    function renderGraph(storyData) {
+        if (sim) { sim.stop(); sim = null; }
+        const svg = d3.select('#graph');
+        svg.selectAll('*').remove();
+        document.getElementById('placeholder').style.display = 'none';
+
+        const W = document.getElementById('svg-wrap').offsetWidth;
+        const H = document.getElementById('svg-wrap').offsetHeight;
+
+        const nodes = Object.values(storyData).map(n => ({
+            id: n.id,
+            section: n.section || 'Unknown',
+            content: n.content || '',
+            isLogic: !!n.isLogicNode,
+            isDynamic: !!n.isDynamic,
+            isGameOver: n.id.startsWith('game_over'),
+            daysCost: n.daysCost ?? 0,
+            hpChange: n.hpChange ?? 0,
+            choiceCount: (n.choices || []).length,
+            hasLoop: false
+        }));
+
+        const rawEdges = [];
+        for (const node of Object.values(storyData)) {
+            for (const ch of (node.choices || [])) {
+                if (!ch.target || ch.target === 'RESTART') continue;
+                if (ch.target === node.id) continue;
+                rawEdges.push({
+                    from: node.id,
+                    to: ch.target,
+                    text: ch.text || '',
+                    conditional: !!ch.condition,
+                });
+            }
+        }
+
+        adjMap = new Map();
+        for (const e of rawEdges) {
+            if (!adjMap.has(e.from)) adjMap.set(e.from, new Set());
+            if (!adjMap.has(e.to)) adjMap.set(e.to, new Set());
+            adjMap.get(e.from).add(e.to);
+            adjMap.get(e.to).add(e.from);
+        }
+
+        const levels = computeLevels(nodes, rawEdges);
+        const maxLevel = Math.max(...Object.values(levels));
+        const byLevel = {};
+        for (const n of nodes) {
+            const l = levels[n.id];
+            n.level = l;
+            if (!byLevel[l]) byLevel[l] = [];
+            byLevel[l].push(n);
+        }
+
+        const PAD_X = 80, PAD_Y = 55;
+        const levelH = (H - PAD_Y * 2) / (maxLevel + 1);
+        for (const [lStr, ns] of Object.entries(byLevel)) {
+            const l = parseInt(lStr);
+            const gap = (W - PAD_X * 2) / (ns.length + 1);
+            ns.forEach((n, i) => {
+                n.x = PAD_X + gap * (i + 1);
+                n.y = PAD_Y + l * levelH;
+            });
+        }
+
+        const NW = 92, NH = 22;
+        const defs = svg.append('defs');
+        function mkArrow(id, color) {
+            defs.append('marker')
+                .attr('id', id)
+                .attr('viewBox', '0 -4 8 8')
+                .attr('refX', 7).attr('refY', 0)
+                .attr('markerWidth', 5).attr('markerHeight', 5)
+                .attr('orient', 'auto')
+                .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', color);
+        }
+        mkArrow('arr', '#2d6e2d');
+        mkArrow('arr-cond', '#ffb300');
+
+        const root = svg.append('g').attr('id', 'root');
+        const zoomBehavior = d3.zoom().scaleExtent([0.08, 5])
+            .on('zoom', e => root.attr('transform', e.transform));
+        svg.call(zoomBehavior);
+
+        const bandG = root.append('g');
+        const sectionLevels = {};
+        for (const n of nodes) {
+            const sec = n.section;
+            if (!sectionLevels[sec]) sectionLevels[sec] = { min: Infinity, max: -Infinity };
+            sectionLevels[sec].min = Math.min(sectionLevels[sec].min, n.level);
+            sectionLevels[sec].max = Math.max(sectionLevels[sec].max, n.level);
+        }
+        const BW = W * 4;
+        for (const [sec, info] of Object.entries(sectionLevels)) {
+            const y1 = PAD_Y + info.min * levelH - levelH * 0.52;
+            const y2 = PAD_Y + info.max * levelH + levelH * 0.52;
+            const col = getSectionColor(sec);
+            bandG.append('rect')
+                .attr('x', -BW/2).attr('y', y1)
+                .attr('width', BW).attr('height', y2 - y1)
+                .attr('fill', col).attr('opacity', 0.028);
+            bandG.append('line')
+                .attr('x1', -BW/2).attr('x2', BW/2)
+                .attr('y1', y1).attr('y2', y1)
+                .attr('stroke', col).attr('stroke-width', 0.5).attr('opacity', 0.18);
+            bandG.append('text')
+                .attr('class', 'band-label')
+                .attr('x', 12).attr('y', (y1 + y2) / 2)
+                .attr('fill', col).attr('font-size', 11)
+                .attr('font-family', '"VT323", monospace')
+                .text('// ' + sec.toUpperCase());
+        }
+
+        const edgeLayer = root.append('g');
+        const nodeLayer = root.append('g');
+
+        const links = rawEdges.map(e => ({
+            ...e,
+            fromId: e.from,
+            toId: e.to,
+            source: e.from,
+            target: e.to
+        }));
+
+        edgePaths = edgeLayer.selectAll('path')
+            .data(links)
+            .join('path')
+            .attr('class', d => 'edge' + (d.conditional ? ' edge-cond' : ''))
+            .attr('stroke', d => d.conditional ? '#ffb300' : '#2d6e2d')
+            .attr('stroke-width', d => d.conditional ? 1.5 : 1.3)
+            .attr('stroke-dasharray', d => d.conditional ? '5,3' : null)
+            .attr('fill', 'none')
+            .attr('opacity', 0.65)
+            .attr('marker-end', d => d.conditional ? 'url(#arr-cond)' : 'url(#arr)');
+
+        nodeGroups = nodeLayer.selectAll('g')
+            .data(nodes)
+            .join('g')
+            .attr('class', 'node-g')
+            .call(d3.drag()
+                .on('start', (ev, d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                .on('drag',  (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
+                .on('end',   (ev, d) => { if (!ev.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+            )
+            .on('mouseover', (ev, d) => showTT(ev, d))
+            .on('mousemove', ev => moveTT(ev))
+            .on('mouseout', hideTT)
+            .on('click', (ev, d) => {
+                if (selectedNodeId === d.id) selectedNodeId = null;
+                else selectedNodeId = d.id;
+                updateHighlight();
+            });
+
+        nodeGroups.append('rect')
+            .attr('class', 'node-rect')
+            .attr('width', NW).attr('height', NH)
+            .attr('x', -NW/2).attr('y', -NH/2)
+            .attr('rx', 2)
+            .attr('fill', d => getSectionColor(d.section))
+            .attr('stroke', d => {
+                if (d.isGameOver) return '#cc2222';
+                if (d.isLogic)    return '#ffff00';
+                if (d.isDynamic)  return '#00ff88';
+                return 'rgba(0,0,0,0.5)';
+            })
+            .attr('stroke-width', d => (d.isLogic || d.isDynamic || d.isGameOver) ? 2 : 1)
+            .attr('fill-opacity', 0.88);
+
+        nodeGroups.append('text')
+            .attr('class', 'node-label')
+            .attr('dy', '0.1em')
+            .text(d => d.id.length <= 14 ? d.id : d.id.substring(0, 13) + '…');
+
+        nodeGroups.filter(d => d.daysCost > 0 || d.hpChange < 0)
+            .append('text')
+            .attr('class', 'node-icon')
+            .attr('x', NW/2 - 7)
+            .attr('y', -NH/2 + 6)
+            .attr('font-size', '7px')
+            .attr('fill', '#000')
+            .attr('opacity', 0.5)
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'hanging')
+            .text(d => {
+                let s = '';
+                if (d.daysCost > 0) s += '⏱';
+                if (d.hpChange < 0) s += '♥';
+                return s;
+            });
+
+        sim = d3.forceSimulation(nodes)
+            .force('link', d3.forceLink(links).id(d => d.id).distance(75).strength(0.18))
+            .force('charge', d3.forceManyBody().strength(-220))
+            .force('x', d3.forceX(d => d.x).strength(0.1))
+            .force('y', d3.forceY(d => d.y).strength(0.92))
+            .force('collide', d3.forceCollide(52))
+            .alphaDecay(0.018)
+            .on('tick', tick);
+
+        links.forEach(l => { l._bend = (Math.random() > 0.5 ? 1 : -1); });
+
+        function edgePathStable(d) {
+            const sx = d.source.x ?? 0, sy = d.source.y ?? 0;
+            const tx = d.target.x ?? 0, ty = d.target.y ?? 0;
+            const [x1, y1] = rectEdgeFrom(sx, sy, tx, ty, NW/2, NH/2);
+            const [x2, y2] = rectEdge(sx, sy, tx, ty, NW/2 + 2, NH/2 + 2);
+            const dx = tx - sx, dy = ty - sy;
+            const len = Math.sqrt(dx*dx + dy*dy) || 1;
+            const bend = Math.min(28, len * 0.15) * d._bend;
+            const mx = (x1 + x2) / 2 + (dy / len) * bend;
+            const my = (y1 + y2) / 2 - (dx / len) * bend;
+            return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
+        }
+
+        function tick() {
+            edgePaths.attr('d', edgePathStable);
+            nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+        }
+
+        function updateHighlight() {
+            if (!selectedNodeId) {
+                nodeGroups.attr('opacity', 1);
+                edgePaths.attr('opacity', 0.65);
+                return;
+            }
+            const neighbors = adjMap.get(selectedNodeId) || new Set();
+            neighbors.add(selectedNodeId);
+            nodeGroups.attr('opacity', d => neighbors.has(d.id) ? 1 : 0.2);
+            edgePaths.attr('opacity', d => {
+                const src = d.fromId, tgt = d.toId;
+                return (neighbors.has(src) && neighbors.has(tgt)) ? 0.8 : 0.1;
+            });
+        }
+        updateHighlight();
+
+        const legendDiv = document.getElementById('legend');
+        legendDiv.innerHTML = '';
+        const sections = [...new Set(nodes.map(n => n.section))].sort();
+        for (const sec of sections) {
+            const el = document.createElement('div');
+            el.className = 'leg';
+            el.innerHTML = `<div class="leg-dot" style="background:${getSectionColor(sec)}"></div><span>${sec}</span>`;
+            legendDiv.appendChild(el);
+        }
+        const ce = document.createElement('div');
+        ce.className = 'leg';
+        ce.innerHTML = `<div class="leg-dot" style="background:#ffb300;border-radius:0"></div><span>Conditional path</span>`;
+        legendDiv.appendChild(ce);
+        const le = document.createElement('div');
+        le.className = 'leg';
+        le.innerHTML = `<span style="font-size:11px;margin-right:4px;opacity:0.7">⏱/♥</span><span>Days/HP cost on node</span>`;
+        legendDiv.appendChild(le);
+
+        const cond = rawEdges.filter(e => e.conditional).length;
+        document.getElementById('status').innerHTML = `<span class="ok">✓</span> ${nodes.length} nodes &middot; ${rawEdges.length} paths &middot; ${cond} conditional`;
+
+        setTimeout(fitView, 1400);
+        document.getElementById('btn-fit').onclick = fitView;
+
+        function fitView() {
+            try {
+                const bbox = root.node().getBBox();
+                if (!bbox.width || !bbox.height) return;
+                const pad = 48;
+                const scaleX = W / (bbox.width + pad * 2);
+                const scaleY = H / (bbox.height + pad * 2);
+                const scale = Math.min(scaleX, scaleY, 2);
+                const tx = W / 2 - scale * (bbox.x + bbox.width / 2);
+                const ty = H / 2 - scale * (bbox.y + bbox.height / 2);
+                svg.transition().duration(600)
+                    .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+            } catch(e) {}
+        }
+    }
+
+    function showTT(ev, d) {
+        const tt = document.getElementById('tooltip');
+        const col = getSectionColor(d.section);
+        let html = `<div class="tt-id" style="color:${col};text-shadow:0 0 8px ${col}">${d.id}</div>`;
+        const preview = (d.content || '').substring(0, 160) + ((d.content || '').length > 160 ? '…' : '');
+        html += `<div class="tt-content">${preview || '(no summary)'}</div>`;
+        const tags = [];
+        if (d.daysCost > 0) tags.push(`<span class="tt-tag tt-warn">⏱ -${d.daysCost} day${d.daysCost > 1 ? 's' : ''}</span>`);
+        if (d.hpChange < 0) tags.push(`<span class="tt-tag tt-warn">❤ ${d.hpChange} HP</span>`);
+        if (d.choiceCount > 0) tags.push(`<span class="tt-tag">${d.choiceCount} choice${d.choiceCount > 1 ? 's' : ''}</span>`);
+        if (d.isLogic) tags.push(`<span class="tt-tag tt-special">⚙ Logic node</span>`);
+        if (d.isDynamic) tags.push(`<span class="tt-tag tt-special">✦ Dynamic</span>`);
+        if (d.isGameOver) tags.push(`<span class="tt-tag" style="color:#ff4444">💀 Game Over</span>`);
+        if (tags.length) html += `<div class="tt-meta">${tags.join('')}</div>`;
+        tt.innerHTML = html;
+        tt.style.display = 'block';
+        moveTT(ev);
+    }
+    function moveTT(ev) {
+        const tt = document.getElementById('tooltip');
+        let x = ev.clientX + 16, y = ev.clientY + 12;
+        if (x + 320 > window.innerWidth)  x = ev.clientX - 326;
+        if (y + 200 > window.innerHeight) y = ev.clientY - 210;
+        tt.style.left = x + 'px';
+        tt.style.top  = y + 'px';
+    }
+    function hideTT() {
+        document.getElementById('tooltip').style.display = 'none';
+    }
+
+    document.getElementById('file-input').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('status').innerHTML = 'Loading…';
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const storyData = JSON.parse(ev.target.result);
+                renderGraph(storyData);
+            } catch (err) {
+                document.getElementById('status').innerHTML = `<span class="err">✗ Invalid JSON: ${err.message}</span>`;
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
 </script>
 </body>
 </html>

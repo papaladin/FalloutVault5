@@ -953,17 +953,6 @@
         }
       },
       {
-        "text": "Buy RadAway (remove radiation?) – not implemented",
-        "target": "crossroads_village",
-        "condition": "notHasFlag:bought_drug",
-        "extraContentKey": "village_trader_placeholder_text",
-        "on_select": {
-          "action": "adjust",
-          "hp": -2,
-          "set_flag": "bought_drug"
-        }
-      },
-      {
         "text": "Just browse",
         "target": "crossroads_village"
       }

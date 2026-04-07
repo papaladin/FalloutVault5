@@ -195,56 +195,34 @@ function displayGameOverNode(nodeId) {
 }
 
 function generateEpilogue() {
-    let text = "The reactor hums back to life. Vault 5 is saved.\n\n";
+    let text = textMap["epilogue_intro"] || "The reactor hums back to life. Vault 5 is saved.\n\n";
     const culpritIdentified = gameState.flags.culpritIdentified || false;
     const culpritCorrect    = gameState.flags.culpritCorrect    || false;
     const sentence          = gameState.flags.sentence;
 
     if (!culpritIdentified) {
-        text += "But the saboteur remains at large, hidden among the dwellers. Trust is broken, and paranoia festers in the corridors like a disease nobody wants to name. The Overseer thanks you with a hollow smile \u2013 she knows, as you do, that the real threat still watches from the shadows. Meals are eaten in silence. Neighbors eye each other over the hydroponic soy. The water chip works again, but nobody trusts the water.\n\n";
-        text += "You lie awake at night, staring at the riveted ceiling, wondering which face hides the knife. Marcus is still there, still smiling that too\u2011wide smile. You have no proof, only instinct. And instinct, in Vault\u2011Tec\u2019s world, is worth less than the lint in your pocket.\n\n";
-        text += "The vault survives. But survival isn\u2019t the same as living. You saved them from the reactor, but you couldn\u2019t save them from themselves. Some victories taste like ash.\n\n";
+        text += textMap["epilogue_culprit_not_identified"] || "";
     } else if (culpritCorrect) {
-        text += "You have unmasked the true traitor: Marcus, the Overseer\u2019s assistant. The evidence is undeniable \u2013 a holotape, a terminal log, a confession that spills out like rancid oil. The dwellers gasp. Security cuffs him. His smile finally cracks, revealing the rot beneath.\n\n";
-        text += "\u2018Vault\u2011Tec promised me a place in a control vault,\u2019 he snarls. \u2018They said I\u2019d be safe. I was just following orders.\u2019 The words hang in the recycled air, heavy and pathetic. Following orders. The oldest excuse for the worst crimes.\n\n";
-
+        text += textMap["epilogue_culprit_correct_intro"] || "";
         if (sentence === "mercy") {
-            text += "You show mercy. Marcus is imprisoned in the vault\u2019s brig \u2013 a converted storage closet with a cot and a bucket. He\u2019ll spend his days scrubbing pipes and repairing filtration units. Some call you weak. They whisper that you should have put a bullet in his head. But others see wisdom in redemption \u2013 or maybe they\u2019re just tired of blood.\n\n";
-            text += "Marcus works in silence. He doesn\u2019t thank you. He doesn\u2019t curse you. He just exists, a ghost in a jumpsuit. The vault breathes easier, but the scar remains. You pass him in the corridor sometimes. He looks away. So do you.\n\n";
+            text += textMap["epilogue_culprit_correct_mercy"] || "";
         } else if (sentence === "exile") {
-            text += "You cast Marcus into the wasteland without a weapon, without a canteen, without hope. The vault door seals behind him. His last look is not anger, but something worse: resignation. He knew this was coming. He always knew.\n\n";
-            text += "The dwellers cheer. Justice, they call it. But you can\u2019t shake the image of him walking into the dust, alone, under a sky the color of a healing bruise. He won\u2019t survive the night. The radscorpions will see to that.\n\n";
-            text += "The vault is safe. But safety built on exile feels like a bandage on a wound that needs stitches. You tell yourself he deserved it. Most nights, you almost believe it.\n\n";
+            text += textMap["epilogue_culprit_correct_exile"] || "";
         } else if (sentence === "execution") {
-            text += "Marcus is executed by firing squad in the atrium. The plastic tree watches, its leaves dusted for the occasion. The shots echo off the metal walls \u2013 three sharp cracks, then silence. His body crumples, a red stain spreading on the concrete.\n\n";
-            text += "His last words are a curse \u2013 not on you, but on Vault\u2011Tec, on the world, on the whole rotten system that made him a pawn. The dwellers turn away, suddenly ashamed. Nobody cheers. Nobody cries. They just\u2026 leave.\n\n";
-            text += "You stand alone with the body, the regulator still warm in your hands. Order is restored. Fear is replaced by something colder. The vault is safe. But you wonder, sometimes, if you executed the wrong person after all. Not Marcus \u2013 yourself.\n\n";
+            text += textMap["epilogue_culprit_correct_execution"] || "";
         }
     } else {
-        text += "You accuse an innocent dweller based on flimsy evidence \u2013 a hunch, a whisper, a desperate need to blame someone. The council listens. The dwellers shout for blood. And you give it to them.\n\n";
-        text += "The real saboteur remains hidden, maybe laughing, maybe watching from the shadows. The vault\u2019s unity crumbles like old concrete. Your reputation \u2013 once a hero\u2019s \u2013 shatters into a thousand pieces. People avoid you in the corridors. They whisper behind your back. \u2018Wrong man,\u2019 they say. \u2018Finger pointed the wrong way.\u2019\n\n";
-
+        text += textMap["epilogue_culprit_wrong_intro"] || "";
         if (sentence === "mercy") {
-            text += "You show mercy to the innocent. He is imprisoned \u2013 not in the brig, but in a corner of the hydroponics bay, under guard. He doesn\u2019t speak. He doesn\u2019t eat. He just sits, staring at the plastic tree, his eyes empty.\n\n";
-            text += "The whispers follow you forever. \u2018She let him live,\u2019 they say, \u2018but she killed his soul.\u2019 You visit him once. He looks through you like you\u2019re made of glass. You never go back.\n\n";
-            text += "The vault endures, but it\u2019s a hollow shell. Trust is a currency nobody spends. And you, the hero of Vault 5, are its most indebted citizen.\n\n";
+            text += textMap["epilogue_culprit_wrong_mercy"] || "";
         } else if (sentence === "exile") {
-            text += "You cast an innocent family into the wasteland \u2013 a father, a mother, a child no older than five. The vault door seals behind them. The mother\u2019s eyes haunt you. The child\u2019s silence is louder than any scream.\n\n";
-            text += "You will never forget their faces. They stare at you in your dreams, asking why. You have no answer. Only the hollow echo of your own voice, shouting \u2018traitor\u2019 at the wrong target.\n\n";
-            text += "The wasteland outside is harsh. They won\u2019t last a week. And when they\u2019re gone, you\u2019ll still be here, living with the weight of their exile. Justice? No. Just tragedy wearing a hero\u2019s badge.\n\n";
+            text += textMap["epilogue_culprit_wrong_exile"] || "";
         } else if (sentence === "execution") {
-            text += "Blood stains the atrium floor. You executed the wrong person. The innocent\u2019s last words were not a curse, but a question: \u2018Why?\u2019 You have no answer. The bullet left your gun, but the guilt never leaves you.\n\n";
-            text += "The dwellers turn away. The Overseer avoids your gaze. Even the security guards shuffle their feet, uncomfortable. You wanted justice. You got murder.\n\n";
-            text += "The vault is safe \u2013 the reactor hums, the water flows \u2013 but the safety is built on a lie. You go to sleep each night and wake each morning to the same thought: an innocent person died because you were too eager, too angry, too blind.\n\n";
-            text += "Some heroes get statues. You get a stain that won\u2019t wash out.\n\n";
+            text += textMap["epilogue_culprit_wrong_execution"] || "";
         }
     }
 
-    text += "The wasteland outside remains harsh \u2013 the sun still burns, the radscorpions still skitter, the Enclave still schemes. But for now, Vault 5 endures. The lights stay on. The children grow up. The old die slow.\n\n";
-    text += "Your adventure is over. But the wasteland never stops. And somewhere, out there, a regulator waits for the next vault to fail.\n\n";
-    text += "Thank you for playing.\n\n";
-    text += "\u2014 Vault 5 \u2014";
-
+    text += textMap["epilogue_outro"] || "";
     return text;
 }
 
